@@ -15,6 +15,8 @@ cobc -x -free -o bin/in_college src/in_college.cob
 
 Below is the rest of the README.md that came in the template .zip file from the professor.
 
+---
+
 A cross-platform template for teaching **GNU COBOL** using **Docker** and **VS Code Dev Containers**.
 Works the same on **Windows 11** and **macOS** (Apple Silicon and Intel).
 
