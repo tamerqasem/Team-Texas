@@ -6,8 +6,8 @@
        FILE-CONTROL.
            SELECT USER-FILE ASSIGN "users.txt"
                ORGANIZATION IS SEQUENTIAL
-               ACCESS MODE IS SEQUENTIAL.
-
+               ACCESS MODE IS SEQUENTIAL
+               FILE STATUS IS WS-FILE-STATUS.
        DATA DIVISION.
        FILE SECTION.
        FD USER-FILE.
@@ -16,6 +16,7 @@
            05 USER-PASSWORD PIC X(12).
 
        WORKING-STORAGE SECTION.
+       01 WS-FILE-STATUS PIC XX.
        01 WS-USERNAME    PIC X(20).
        01 WS-PASSWORD    PIC X(12).
        01 WS-PASS-LENGTH PIC 9.
@@ -32,13 +33,24 @@
            ACCEPT WS-CHOICE
 
            IF WS-CHOICE = 1
+               *> Open the "user.txt" file
+               OPEN INPUT USER-FILE
+
+               *> Handle failing to open the file
+               IF WS-FILE-STATUS NOT = "00"
+                   DISPLAY "Failed to open user file. Status: " WS-FILE-STATUS
+                   DISPLAY "You cannot login at this time."
+                   DISPLAY "Either no accounts have been created, or the user file is misplaced."
+                   STOP RUN
+               END-IF
+
+               *> Accept user input
                DISPLAY "Username: "
                ACCEPT WS-USERNAME
                DISPLAY "Password: "
                ACCEPT WS-PASSWORD
 
-               OPEN INPUT USER-FILE
-
+               *> Attempt Login
                PERFORM UNTIL END-FLAG = 'Y' OR FOUND-FLAG = 'Y'
                    READ USER-FILE INTO USER-RECORD
                        AT END MOVE 'Y' TO END-FLAG
