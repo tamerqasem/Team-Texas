@@ -33,7 +33,7 @@
            STOP RUN.
        MAIN-PROCEDURE.
            DISPLAY "-*-----------------------*-"
-           DISPLAY "-*- InSchool Navigation -*-"
+           DISPLAY "-*- InCollege Navigation -*-"
            DISPLAY "-*-----------------------*-"
            DISPLAY " "
            DISPLAY "[1] Log in"
