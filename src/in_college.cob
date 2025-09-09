@@ -5,9 +5,9 @@
        INPUT-OUTPUT SECTION.
        FILE-CONTROL.
            SELECT USER-FILE ASSIGN "users.txt"
-               ORGANIZATION IS SEQUENTIAL
-               ACCESS MODE IS SEQUENTIAL
-               FILE STATUS IS WS-FILE-STATUS.
+           ORGANIZATION IS SEQUENTIAL
+           ACCESS MODE IS SEQUENTIAL
+           FILE STATUS IS WS-FILE-STATUS.
        DATA DIVISION.
        FILE SECTION.
        FD USER-FILE.
@@ -29,12 +29,13 @@
        01 USER-COUNT PIC 9 VALUE 0.
 
        PROCEDURE DIVISION.
-           PERFORM MAIN-PROCEDURE
+           PERFORM NAVIGATION-LOGGED-OUT-PROCEDURE
            STOP RUN.
-       MAIN-PROCEDURE.
-           DISPLAY "-*-----------------------*-"
-           DISPLAY "-*- InCollege Navigation -*-"
-           DISPLAY "-*-----------------------*-"
+
+       NAVIGATION-LOGGED-OUT-PROCEDURE.
+           DISPLAY "-*------------------------*-"
+           DISPLAY "-*- Welcome to InCollege -*-"
+           DISPLAY "-*------------------------*-"
            DISPLAY " "
            DISPLAY "[1] Log in"
            DISPLAY "[2] Create Account"
@@ -50,10 +51,37 @@
                PERFORM CREATE-ACCOUNT-PROCEDURE
            ELSE
                DISPLAY "Error: Invalid Choice Selected."
-               DISPLAY "[!] Terminating Program."
-               STOP RUN
+               PERFORM NAVIGATION-LOGGED-OUT-PROCEDURE *> Let the user choose another selection.
+               EXIT
            END-IF
            EXIT.
+
+       NAVIGATION-LOGGED-IN-PROCEDURE.
+           DISPLAY "-*------------------------*-"
+           DISPLAY "-*- InCollege Navigation -*-"
+           DISPLAY "-*------------------------*-"
+           DISPLAY " "
+           DISPLAY "[1] Search for a job"
+           DISPLAY "[2] Find someone you know"
+           DISPLAY "[3] Learn a new skill"
+           DISPLAY " "
+           DISPLAY "-*- Input your selection:"
+
+           ACCEPT WS-CHOICE
+
+           IF WS-CHOICE = 1
+               DISPLAY "CHOICE 1"
+           ELSE IF WS-CHOICE = 2
+               DISPLAY "CHOICE 2"
+           ELSE IF WS-CHOICE = 3
+               DISPLAY "CHOICE 3"
+           ELSE
+               DISPLAY "Error: Invalid Choice Selected."
+               PERFORM NAVIGATION-LOGGED-IN-PROCEDURE
+               EXIT
+           END-IF
+           EXIT.
+
        LOGIN-PROCEDURE.
            *> Open the "user.txt" file
            OPEN INPUT USER-FILE
@@ -64,15 +92,15 @@
                DISPLAY "You cannot login at this time."
                DISPLAY "Either no accounts have been created, or the user file is misplaced."
                CLOSE USER-FILE
+               PERFORM NAVIGATION-LOGGED-OUT-PROCEDURE
                EXIT
-           ELSE
-               DISPLAY "[DEBUG] File Status: " WS-FILE-STATUS
+           *> ELSE
+           *>    DISPLAY "[DEBUG] File Status: " WS-FILE-STATUS
            END-IF
 
            *> Accept user input
            DISPLAY " "
-           DISPLAY "-*- Login into your account"
-           DISPLAY " "
+           DISPLAY "-*- Enter your account credentials:"
            DISPLAY "Username: "
            ACCEPT WS-USERNAME
            DISPLAY "Password: "
@@ -90,23 +118,25 @@
                    AT END MOVE 'Y' TO END-FLAG
                END-READ
 
-               DISPLAY "[DEBUG] Reading File: "
-               DISPLAY " - Username:" USER-NAME
-               DISPLAY " - Password:" USER-PASSWORD
+               *> DISPLAY " "
+               *> DISPLAY "[DEBUG] Reading File: "
+               *> DISPLAY " - Username: " USER-NAME
+               *> DISPLAY " - Password: " USER-PASSWORD
                IF WS-USERNAME = USER-NAME
                    IF WS-PASSWORD = USER-PASSWORD
-                       DISPLAY "Login Successful"
                        MOVE 'Y' TO FOUND-FLAG
-                   ELSE
-                       DISPLAY "Password Incorrect"
                    END-IF
                END-IF
            END-PERFORM
+           CLOSE USER-FILE
 
            IF FOUND-FLAG = 'N'
                DISPLAY "Login credentials are invalid."
+           ELSE IF FOUND-FLAG = 'Y'
+               DISPLAY "You have successfully logged in."
+               DISPLAY "Welcome, [" WS-USERNAME "]!"
+               PERFORM NAVIGATION-LOGGED-IN-PROCEDURE
            END-IF
-           CLOSE USER-FILE
            EXIT.
 
        CREATE-ACCOUNT-PROCEDURE.
