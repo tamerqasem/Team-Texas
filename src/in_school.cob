@@ -27,77 +27,87 @@
        01 USER-COUNT PIC 9 VALUE 0.
 
        PROCEDURE DIVISION.
+       MAIN-PROCEDURE.
+           DISPLAY "-- InSchool Menu --"
            DISPLAY "1. Log in"
            DISPLAY "2. Create Account"
 
            ACCEPT WS-CHOICE
 
            IF WS-CHOICE = 1
-               *> Open the "user.txt" file
-               OPEN INPUT USER-FILE
+               PERFORM LOGIN-PROCEDURE
+               DISPLAY "TESTTEST"
+           ELSE IF WS-CHOICE = 2
+               PERFORM CREATE-ACCOUNT-PROCEDURE
+           ELSE
+               DISPLAY "[!] Invalid Choice Selected."
+               DISPLAY "[!] Terminating Program."
+           END-IF
+           STOP RUN.
+       LOGIN-PROCEDURE.
+           *> Open the "user.txt" file
+           OPEN INPUT USER-FILE
 
-               *> Handle failing to open the file
-               IF WS-FILE-STATUS NOT = "00"
-                   DISPLAY "Failed to open user file. Status: " WS-FILE-STATUS
-                   DISPLAY "You cannot login at this time."
-                   DISPLAY "Either no accounts have been created, or the user file is misplaced."
-                   STOP RUN
+           *> Handle failing to open the file
+           IF WS-FILE-STATUS NOT = "00"
+               DISPLAY "Failed to open user file. Status: " WS-FILE-STATUS
+               DISPLAY "You cannot login at this time."
+               DISPLAY "Either no accounts have been created, or the user file is misplaced."
+               STOP RUN
+           END-IF
+
+           *> Accept user input
+           DISPLAY "Username: "
+           ACCEPT WS-USERNAME
+           DISPLAY "Password: "
+           ACCEPT WS-PASSWORD
+
+           *> Attempt Login
+           PERFORM UNTIL END-FLAG = 'Y' OR FOUND-FLAG = 'Y'
+               READ USER-FILE INTO USER-RECORD
+                   AT END MOVE 'Y' TO END-FLAG
+               END-READ
+
+               IF WS-USERNAME = USER-NAME
+                   IF WS-PASSWORD = USER-PASSWORD
+                       DISPLAY "Login Successful"
+                       MOVE 'Y' TO FOUND-FLAG
+                   ELSE
+                       DISPLAY "Password Incorrect"
+                   END-IF
                END-IF
+           END-PERFORM
 
-               *> Accept user input
+           IF FOUND-FLAG = 'N'
+               DISPLAY "Username not found"
+           END-IF
+           EXIT.
+
+       CREATE-ACCOUNT-PROCEDURE.
+           OPEN INPUT USER-FILE
+           PERFORM UNTIL END-FLAG = 'Y'
+               READ USER-FILE INTO USER-RECORD
+                   AT END MOVE 'Y' TO END-FLAG
+                   NOT AT END ADD 1 TO USER-COUNT
+               END-READ
+           END-PERFORM
+           CLOSE USER-FILE
+           IF USER-COUNT > 5
+               DISPLAY "User limit reached."
+               STOP RUN
+
+           ELSE
                DISPLAY "Username: "
                ACCEPT WS-USERNAME
                DISPLAY "Password: "
                ACCEPT WS-PASSWORD
 
-               *> Attempt Login
-               PERFORM UNTIL END-FLAG = 'Y' OR FOUND-FLAG = 'Y'
-                   READ USER-FILE INTO USER-RECORD
-                       AT END MOVE 'Y' TO END-FLAG
-                   END-READ
 
-                   IF WS-USERNAME = USER-NAME
-                       IF WS-PASSWORD = USER-PASSWORD
-                           DISPLAY "Login Successful"
-                           MOVE 'Y' TO FOUND-FLAG
-                       ELSE
-                           DISPLAY "Password Incorrect"
-                       END-IF
-                   END-IF
-               END-PERFORM
+               OPEN EXTEND USER-FILE
 
-               IF FOUND-FLAG = 'N'
-                DISPLAY "Username not found"
-               END-IF
-
-
+               MOVE WS-USERNAME TO USER-NAME
+               MOVE WS-PASSWORD TO USER-PASSWORD
+               WRITE USER-RECORD
+               CLOSE USER-FILE
            END-IF
-           IF WS-CHOICE = 2
-                OPEN INPUT USER-FILE
-                PERFORM UNTIL END-FLAG = 'Y'
-                   READ USER-FILE INTO USER-RECORD
-                       AT END MOVE 'Y' TO END-FLAG
-                       NOT AT END ADD 1 TO USER-COUNT
-                   END-READ
-                END-PERFORM
-                CLOSE USER-FILE
-                IF USER-COUNT > 5
-                    DISPLAY "User limit reached."
-                    STOP RUN
-
-                ELSE
-                   DISPLAY "Username: "
-                   ACCEPT WS-USERNAME
-                   DISPLAY "Password: "
-                   ACCEPT WS-PASSWORD
-
-
-                   OPEN EXTEND USER-FILE
-
-                   MOVE WS-USERNAME TO USER-NAME
-                   MOVE WS-PASSWORD TO USER-PASSWORD
-                   WRITE USER-RECORD
-                   CLOSE USER-FILE
-                 END-IF
-           END-IF.
-           STOP RUN.
+           EXIT.
