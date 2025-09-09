@@ -39,6 +39,7 @@
            DISPLAY " "
            DISPLAY "[1] Log in"
            DISPLAY "[2] Create Account"
+           DISPLAY "[3] Exit"
            DISPLAY " "
            DISPLAY "-*- Input your selection:"
 
@@ -49,11 +50,13 @@
                PERFORM LOGIN-PROCEDURE
            ELSE IF WS-CHOICE = 2
                PERFORM CREATE-ACCOUNT-PROCEDURE
+           ELSE IF WS-CHOICE = 3
+               STOP RUN
            ELSE
                DISPLAY "Error: Invalid Choice Selected."
-               PERFORM NAVIGATION-LOGGED-OUT-PROCEDURE *> Let the user choose another selection.
-               EXIT
            END-IF
+
+           PERFORM NAVIGATION-LOGGED-OUT-PROCEDURE.
            EXIT.
 
        NAVIGATION-LOGGED-IN-PROCEDURE.
@@ -70,11 +73,11 @@
            ACCEPT WS-CHOICE
 
            IF WS-CHOICE = 1
-               DISPLAY "CHOICE 1"
+               DISPLAY "[Search for a job] is under construction."
            ELSE IF WS-CHOICE = 2
-               DISPLAY "CHOICE 2"
+               DISPLAY "[Find someone you know] is under construction."
            ELSE IF WS-CHOICE = 3
-               DISPLAY "CHOICE 3"
+               DISPLAY "[Learn a new skill] is under construction."
            ELSE
                DISPLAY "Error: Invalid Choice Selected."
                PERFORM NAVIGATION-LOGGED-IN-PROCEDURE
@@ -141,23 +144,27 @@
 
        CREATE-ACCOUNT-PROCEDURE.
            OPEN I-O USER-FILE
-           PERFORM UNTIL END-FLAG = 'Y'
-               READ USER-FILE INTO USER-RECORD
+
+           IF FS-SUCCESS *> Without this, the `PERFORM` will loop forever if the file fails to read or it doesn't exist.
+               PERFORM UNTIL END-FLAG = 'Y'
+                   READ USER-FILE INTO USER-RECORD
                    AT END MOVE 'Y' TO END-FLAG
                    NOT AT END ADD 1 TO USER-COUNT
-               END-READ
-           END-PERFORM
+                   END-READ
+               END-PERFORM
+           END-IF
+
            CLOSE USER-FILE
            IF USER-COUNT > 5
-               DISPLAY "User limit reached."
+               DISPLAY "The user limit of 5 has been reached."
                STOP RUN
 
            ELSE
+               DISPLAY "-*- Enter new account credentials:"
                DISPLAY "Username: "
                ACCEPT WS-USERNAME
                DISPLAY "Password: "
                ACCEPT WS-PASSWORD
-
 
                OPEN EXTEND USER-FILE
 
