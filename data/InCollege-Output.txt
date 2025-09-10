@@ -1,0 +1,30 @@
+InCollege CLI : Welcome!
+1) Log in
+2) Create account
+Select an option:
+Enter a username:
+Enter a password (8 to 12, include uppercase, digit, special):
+Account created! You can log in now.
+1) Log in
+2) Create account
+Select an option:
+Username:
+Password:
+Login successful.
+1) Search jobs (coming soon)
+2) Find people (coming soon)
+3) Learn a new skill
+Choose an option:
+Learn a New Skill
+1) Alpha
+2) Beta
+3) Gamma
+4) Delta
+5) Epsilon
+6) Back
+Your selection:
+1) Search jobs (coming soon)
+2) Find people (coming soon)
+3) Learn a new skill
+Choose an option:
+--- END OF EXECUTION ---
