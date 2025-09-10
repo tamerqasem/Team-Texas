@@ -21,7 +21,8 @@
            88 FS-FILE-NOT-FOUND VALUE "35".
        01 WS-USERNAME    PIC X(20).
        01 WS-PASSWORD    PIC X(12).
-       01 WS-PASS-LENGTH PIC 9.
+       01 WS-PASSWORD-IN PIC X(13).
+       01 WS-PASS-LENGTH PIC 99.
        01 WS-CHOICE      PIC 9.
        01 END-FLAG       PIC X VALUE 'N'.
        01 FOUND-FLAG     PIC X VALUE 'N'.
@@ -33,21 +34,21 @@
        01 USER-COUNT PIC 9 VALUE 0.
 
        PROCEDURE DIVISION.
+           DISPLAY "-*------------------------*-"
+           DISPLAY "-*- Welcome to InCollege -*-"
+           DISPLAY "-*------------------------*-"
            PERFORM UNTIL PROGRAM-EXIT-READY
                PERFORM NAVIGATION-LOGGED-OUT-PROCEDURE
            END-PERFORM
            STOP RUN.
 
        NAVIGATION-LOGGED-OUT-PROCEDURE.
-           DISPLAY "-*------------------------*-"
-           DISPLAY "-*- Welcome to InCollege -*-"
-           DISPLAY "-*------------------------*-"
-           DISPLAY " "
+           DISPLAY "Choose an operation:"
            DISPLAY "[1] Log in"
            DISPLAY "[2] Create Account"
            DISPLAY "[3] Exit"
            DISPLAY " "
-           DISPLAY "-*- Input your selection:"
+           DISPLAY "Your selection: " WITH NO ADVANCING
 
            *> Get User Input
            ACCEPT WS-CHOICE
@@ -61,7 +62,7 @@
            ELSE
                DISPLAY "[Error]: Invalid Choice Selected."
            END-IF
-           DISPLAY "TESTABC".
+           .
 
        NAVIGATION-LOGGED-IN-PROCEDURE.
            DISPLAY "-*------------------------*-"
@@ -72,7 +73,7 @@
            DISPLAY "[2] Find someone you know"
            DISPLAY "[3] Learn a new skill"
            DISPLAY " "
-           DISPLAY "-*- Input your selection:"
+           DISPLAY "Your selection: "  WITH NO ADVANCING
 
            ACCEPT WS-CHOICE
 
@@ -86,7 +87,8 @@
                DISPLAY "[Error]: Invalid Choice Selected."
                PERFORM NAVIGATION-LOGGED-IN-PROCEDURE
                EXIT
-           END-IF.
+           END-IF
+           .
 
        LOGIN-PROCEDURE.
            *> Open the "user.txt" file
@@ -107,9 +109,9 @@
            *> Accept user input
            DISPLAY " "
            DISPLAY "-*- Enter your account credentials:"
-           DISPLAY "Username: "
+           DISPLAY "Username: "  WITH NO ADVANCING
            ACCEPT WS-USERNAME
-           DISPLAY "Password: "
+           DISPLAY "Password: "  WITH NO ADVANCING
            ACCEPT WS-PASSWORD
 
            *> *** Attempt Login
@@ -137,12 +139,13 @@
            CLOSE USER-FILE
 
            IF FOUND-FLAG = 'N'
-               DISPLAY "[Error]: Login credentials are invalid."
+               DISPLAY "[Error]: Incorrect username/password, please try again"
            ELSE IF FOUND-FLAG = 'Y'
-               DISPLAY "[!] You have successfully logged in."
+               DISPLAY "[!] You have successfully logged in"
                DISPLAY "Welcome, [" WS-USERNAME "]!"
                PERFORM NAVIGATION-LOGGED-IN-PROCEDURE
-           END-IF.
+           END-IF
+           .
 
        CREATE-ACCOUNT-PROCEDURE.
            *> Check the amount of users added
@@ -167,20 +170,27 @@
            CLOSE USER-FILE
 
            IF USER-COUNT > 5
-               DISPLAY "[Error]: The user limit of 5 has been reached."
+               DISPLAY "[!]: All permitted accounts have been created, please come back later"
            ELSE
-               DISPLAY "-*- Enter new account credentials:"
-               DISPLAY "Username: "
+               DISPLAY "-*- Enter new account credentials"
+               DISPLAY "Username: " WITH NO ADVANCING
                ACCEPT WS-USERNAME
-               DISPLAY "Password: "
-               ACCEPT WS-PASSWORD
+               DISPLAY "Password: " WITH NO ADVANCING
+               ACCEPT WS-PASSWORD-IN
+               MOVE WS-PASSWORD-IN TO WS-PASSWORD
 
+               COMPUTE WS-PASS-LENGTH = FUNCTION LENGTH(FUNCTION TRIM(WS-PASSWORD-IN TRAILING))
 
-               OPEN EXTEND USER-FILE
+               IF WS-PASS-LENGTH IS GREATER THAN 12 OR WS-PASS-LENGTH IS LESS THAN 8
+                   DISPLAY "[!] Password must have a length between 8 to 12 characters"
+               ELSE
+                   OPEN EXTEND USER-FILE
 
-               MOVE WS-USERNAME TO USER-NAME
-               MOVE WS-PASSWORD TO USER-PASSWORD
-               WRITE USER-RECORD
+                   MOVE WS-USERNAME TO USER-NAME
+                   MOVE WS-PASSWORD TO USER-PASSWORD
+                   WRITE USER-RECORD
 
-               CLOSE USER-FILE
-           END-IF.
+                   CLOSE USER-FILE
+               END-IF
+           END-IF
+           .
