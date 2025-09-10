@@ -185,7 +185,6 @@
            *> Check the amount of users added
            OPEN INPUT USER-FILE
            IF FS-FILE-NOT-FOUND
-               MOVE 0 TO USER-COUNT
                OPEN OUTPUT USER-FILE
                MOVE WS-USERNAME TO USER-NAME
                MOVE WS-PASSWORD TO USER-PASSWORD
@@ -194,6 +193,7 @@
                OPEN INPUT USER-FILE
            END-IF
 
+           MOVE 0 TO USER-COUNT
            PERFORM UNTIL END-FLAG = 'Y'
                READ USER-FILE INTO USER-RECORD
                AT END MOVE 'Y' TO END-FLAG
