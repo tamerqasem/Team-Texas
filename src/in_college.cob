@@ -203,7 +203,6 @@
            END-PERFORM
 
            CLOSE USER-FILE
-           DISPLAY "USER COUNT: " USER-COUNT
 
            IF USER-COUNT > 5
                DISPLAY "[!]: All permitted accounts have been created, please come back later"
