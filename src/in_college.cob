@@ -26,10 +26,16 @@
        01 END-FLAG       PIC X VALUE 'N'.
        01 FOUND-FLAG     PIC X VALUE 'N'.
 
+       01 PROGRAM-STATUS PIC 9 VALUE 0.
+           88 PROGRAM-EXIT-READY VALUE "1".
+
+
        01 USER-COUNT PIC 9 VALUE 0.
 
        PROCEDURE DIVISION.
-           PERFORM NAVIGATION-LOGGED-OUT-PROCEDURE
+           PERFORM UNTIL PROGRAM-EXIT-READY
+               PERFORM NAVIGATION-LOGGED-OUT-PROCEDURE
+           END-PERFORM
            STOP RUN.
 
        NAVIGATION-LOGGED-OUT-PROCEDURE.
@@ -51,13 +57,11 @@
            ELSE IF WS-CHOICE = 2
                PERFORM CREATE-ACCOUNT-PROCEDURE
            ELSE IF WS-CHOICE = 3
-               STOP RUN
+               MOVE 1 TO PROGRAM-STATUS
            ELSE
-               DISPLAY "Error: Invalid Choice Selected."
+               DISPLAY "[Error]: Invalid Choice Selected."
            END-IF
-
-           PERFORM NAVIGATION-LOGGED-OUT-PROCEDURE.
-           EXIT.
+           DISPLAY "TESTABC".
 
        NAVIGATION-LOGGED-IN-PROCEDURE.
            DISPLAY "-*------------------------*-"
@@ -79,11 +83,10 @@
            ELSE IF WS-CHOICE = 3
                DISPLAY "[Learn a new skill] is under construction."
            ELSE
-               DISPLAY "Error: Invalid Choice Selected."
+               DISPLAY "[Error]: Invalid Choice Selected."
                PERFORM NAVIGATION-LOGGED-IN-PROCEDURE
                EXIT
-           END-IF
-           EXIT.
+           END-IF.
 
        LOGIN-PROCEDURE.
            *> Open the "user.txt" file
@@ -134,31 +137,37 @@
            CLOSE USER-FILE
 
            IF FOUND-FLAG = 'N'
-               DISPLAY "Login credentials are invalid."
+               DISPLAY "[Error]: Login credentials are invalid."
            ELSE IF FOUND-FLAG = 'Y'
-               DISPLAY "You have successfully logged in."
+               DISPLAY "[!] You have successfully logged in."
                DISPLAY "Welcome, [" WS-USERNAME "]!"
                PERFORM NAVIGATION-LOGGED-IN-PROCEDURE
-           END-IF
-           EXIT.
+           END-IF.
 
        CREATE-ACCOUNT-PROCEDURE.
-           OPEN I-O USER-FILE
-
-           IF FS-SUCCESS *> Without this, the `PERFORM` will loop forever if the file fails to read or it doesn't exist.
-               PERFORM UNTIL END-FLAG = 'Y'
-                   READ USER-FILE INTO USER-RECORD
-                   AT END MOVE 'Y' TO END-FLAG
-                   NOT AT END ADD 1 TO USER-COUNT
-                   END-READ
-               END-PERFORM
+           *> Check the amount of users added
+           OPEN INPUT USER-FILE
+           IF FS-FILE-NOT-FOUND
+               MOVE 0 TO USER-COUNT
+               OPEN OUTPUT USER-FILE
+               MOVE WS-USERNAME TO USER-NAME
+               MOVE WS-PASSWORD TO USER-PASSWORD
+               WRITE USER-RECORD
+               CLOSE USER-FILE
+               OPEN INPUT USER-FILE
            END-IF
 
-           CLOSE USER-FILE
-           IF USER-COUNT > 5
-               DISPLAY "The user limit of 5 has been reached."
-               STOP RUN
+           PERFORM UNTIL END-FLAG = 'Y'
+               READ USER-FILE INTO USER-RECORD
+               AT END MOVE 'Y' TO END-FLAG
+               NOT AT END ADD 1 TO USER-COUNT
+               END-READ
+           END-PERFORM
 
+           CLOSE USER-FILE
+
+           IF USER-COUNT > 5
+               DISPLAY "[Error]: The user limit of 5 has been reached."
            ELSE
                DISPLAY "-*- Enter new account credentials:"
                DISPLAY "Username: "
@@ -166,13 +175,12 @@
                DISPLAY "Password: "
                ACCEPT WS-PASSWORD
 
+
                OPEN EXTEND USER-FILE
 
                MOVE WS-USERNAME TO USER-NAME
                MOVE WS-PASSWORD TO USER-PASSWORD
                WRITE USER-RECORD
-               CLOSE USER-FILE
-           END-IF
 
-           CLOSE USER-FILE
-           EXIT.
+               CLOSE USER-FILE
+           END-IF.
