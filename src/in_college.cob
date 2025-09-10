@@ -194,6 +194,7 @@
            END-IF
 
            MOVE 0 TO USER-COUNT
+           MOVE 'N' TO END-FLAG
            PERFORM UNTIL END-FLAG = 'Y'
                READ USER-FILE INTO USER-RECORD
                AT END MOVE 'Y' TO END-FLAG
@@ -202,6 +203,7 @@
            END-PERFORM
 
            CLOSE USER-FILE
+           DISPLAY "USER COUNT: " USER-COUNT
 
            IF USER-COUNT > 5
                DISPLAY "[!]: All permitted accounts have been created, please come back later"
