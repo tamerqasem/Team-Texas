@@ -28,7 +28,13 @@
        01 FOUND-FLAG     PIC X VALUE 'N'.
 
        01 PROGRAM-STATUS PIC 9 VALUE 0.
+           88 PROGRAM-RUNNING VALUE "0".
            88 PROGRAM-EXIT-READY VALUE "1".
+
+       01 LOGGED_IN_STATUS PIC 9 VALUE 0.
+           88 SIGNED_OUT VALUE 0.
+           88 SIGNED_IN VALUE 1.
+
 
 
        01 USER-COUNT PIC 9 VALUE 0.
@@ -38,7 +44,11 @@
            DISPLAY "-*- Welcome to InCollege -*-"
            DISPLAY "-*------------------------*-"
            PERFORM UNTIL PROGRAM-EXIT-READY
-               PERFORM NAVIGATION-LOGGED-OUT-PROCEDURE
+               IF SIGNED_IN
+                   PERFORM NAVIGATION-LOGGED-IN-PROCEDURE
+               ELSE
+                   PERFORM NAVIGATION-LOGGED-OUT-PROCEDURE
+               END-IF
            END-PERFORM
            STOP RUN.
 
@@ -82,12 +92,35 @@
            ELSE IF WS-CHOICE = 2
                DISPLAY "[Find someone you know] is under construction."
            ELSE IF WS-CHOICE = 3
-               DISPLAY "[Learn a new skill] is under construction."
+               PERFORM LEARN-A-SKILL-PROCEDURE
            ELSE
                DISPLAY "[Error]: Invalid Choice Selected."
                PERFORM NAVIGATION-LOGGED-IN-PROCEDURE
-               EXIT
            END-IF
+           .
+       LEARN-A-SKILL-PROCEDURE.
+           PERFORM UNTIL WS-CHOICE = '0'
+               DiSPLAY "-- Learn a skill --"
+               DISPLAY "[0] Return to previous level"
+               DISPLAY "[1] Learn Example Skill 1"
+               DISPLAY "[2] Learn Example Skill 2"
+               DISPLAY "[3] Learn Example Skill 3"
+               DISPLAY "[4] Learn Example Skill 4"
+               DISPLAY "[5] Learn Example Skill 5"
+               DISPLAY " "
+               DISPLAY "Your selection: "  WITH NO ADVANCING
+
+               ACCEPT WS-CHOICE
+
+               IF WS-CHOICE = 0 then
+                   *> End program execution like in the sample output (For now)
+                   STOP RUN
+               ELSE IF WS-CHOICE LESS THAN OR EQUAL TO 5
+                   DISPLAY "[Example Skill " WS-CHOICE "] is under construction."
+               ELSE
+                   DISPLAY "Invalid Selection"
+               END-IF
+           END-PERFORM
            .
 
        LOGIN-PROCEDURE.
@@ -108,7 +141,7 @@
 
            *> Accept user input
            DISPLAY " "
-           DISPLAY "-*- Enter your account credentials:"
+           DISPLAY "Enter your account credentials:"
            DISPLAY "Username: "  WITH NO ADVANCING
            ACCEPT WS-USERNAME
            DISPLAY "Password: "  WITH NO ADVANCING
@@ -141,8 +174,9 @@
            IF FOUND-FLAG = 'N'
                DISPLAY "[Error]: Incorrect username/password, please try again"
            ELSE IF FOUND-FLAG = 'Y'
+               MOVE 1 TO LOGGED_IN_STATUS
                DISPLAY "[!] You have successfully logged in"
-               DISPLAY "Welcome, [" WS-USERNAME "]!"
+               DISPLAY "Welcome, " FUNCTION TRIM(WS-USERNAME TRAILING) "!"
                PERFORM NAVIGATION-LOGGED-IN-PROCEDURE
            END-IF
            .
