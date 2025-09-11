@@ -1,36 +1,34 @@
-Epic 2 – User Profile Creation (Progress Report)
+EPIC 2 – USER PROFILE CREATION (Progress Report)
 
-Completed So Far
+Completed so far (implemented in code, needs testing):
+- Profile Information Capture:
+    * First Name (required)
+    * Last Name (required)
+    * University/College Attended (required)
+    * Major (required)
+    * Graduation Year (required, 4-digit validation)
+    * About Me (optional) → logic partially implemented, optional check needs finalization
+- Experience (optional, up to 3 entries):
+    * Title
+    * Company/Organization
+    * Dates
+    * Description (optional)
+- Profile Persistence:
+    * User profile info written to InCollege-Profiles.dat
+    * Linked to account login system
 
-Profile Information Capture
-First Name (required)
-Last Name (required)
-University/College Attended (required)
-Major (required)
-Graduation Year (required, with 4-digit year validation)
-About Me (optional) → logic partially implemented, needs final optional check
-Experience (optional, up to 3 entries)
-Title
-Company/Organization
-Dates
-Description (optional)
-Profile Persistence
-User profile info is written to InCollege-Profiles.dat
-Linked to account login system
+Not completed yet (needs development):
+- Education (optional, up to 3 entries):
+    * Degree
+    * University/College
+    * Years Attended
+- Profile Viewing:
+    * Ability for logged-in users to view their saved profile
+- Extra Input Validation:
+    * Ensure optional fields handle blank input cleanly
+    * Handle invalid/random inputs gracefully
 
-Not Completed Yet
-
-Education (optional, up to 3 entries)
-Degree
-University/College
-Years Attended
-Profile Viewing
-Ability for a logged-in user to view their saved profile
-Extra Input Validation
-Ensure optional fields handle blank input cleanly
-Handle invalid/random inputs gracefully
-
-Notes
-Code compiles, but full run-time testing is still required.
-Persistence mechanism works, should be validated with multiple users.
-Optional “About Me” toggle not fully implemented.
+Notes:
+- Code compiles, but full runtime testing is still required
+- Persistence mechanism works, validation needed with multiple users
+- Optional "About Me" toggle not fully implemented
