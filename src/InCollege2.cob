@@ -13,6 +13,11 @@
            SELECT InFile    ASSIGN TO "data/InCollege-Input.txt"
                ORGANIZATION IS LINE SEQUENTIAL
                FILE STATUS  IS FS-IN.
+           SELECT ProfileFile ASSIGN TO "data/InCollege-Profiles.dat"
+               ORGANIZATION IS LINE SEQUENTIAL.
+               FILE STATUS  IS FS-PROFILE.
+
+
 
        DATA DIVISION.
        FILE SECTION.
@@ -23,12 +28,35 @@
        01  ACCT-REC.
            05 AR-USER                      PIC X(20).
            05 AR-PASS                      PIC X(20).
+       FD ProfileFile.
+           01  PROFILE-REC.
+           05 PR-USER                     PIC X(20).
+           05 PR-FNAME                    PIC X(20).
+           05 PR-LNAME                    PIC X(20).
+           05 PR-SCHOOL                   PIC X(30).
+           05 PR-MAJOR                    PIC X(30).
+           05 PR-GRADYR                   PIC X(4).
+           05 PR-ABOUT                    PIC X(100).
+           05 PR-EXPERIENCE-TABLE OCCURS 3 TIMES.
+              10 PR-EXP-TITLE           PIC X(30).
+              10 PR-EXP-COMPANY         PIC X(30).
+              10 PR-EXP-DATES           PIC X(20).
+              10 PR-EXP-DESC            PIC X(50).
+
+           
+           05 PR-EDUCATION-TABLE OCCURS 3 TIMES.
+               10 PR-EDU-DEGREE          PIC X(30).
+               10 PR-EDU-SCHOOL          PIC X(30).
+               10 PR-EDU-YEARS           PIC X(10).
 
        FD  InFile.
        01  IN-REC                          PIC X(240).
 
        WORKING-STORAGE SECTION.
        77  FS-ACCT                         PIC XX     VALUE SPACES.
+
+       77 FS-PROFILE                       PIC XX  VALUE SPACES.
+
        77  FS-IN                           PIC XX     VALUE SPACES.
 
        01  IN-EOF-FLAG                     PIC 9      VALUE 0.
@@ -48,6 +76,14 @@
        01  U-NORM                          PIC X(20)  VALUE SPACES.
        01  P-NORM                          PIC X(20)  VALUE SPACES.
 
+       01 GRAD-YR-STR                     PIC X(4)   VALUE SPACES.
+       77 YEAR-VALID                       PIC 9      VALUE 0.
+       77  I                               PIC 99     VALUE 0.
+       77  EXPERIENCE-COUNT                PIC 9      VALUE 0.
+       77 EDUCATION-COUNT                  PIC 9      VALUE 0.
+       01  PROMPT-TEXT                     PIC X(240)  VALUE SPACES.
+
+
        77  LOGIN-OK                        PIC 9      VALUE 0.
            88  LOGGED-IN                              VALUE 1.
            88  NOT-LOGGED                             VALUE 0.
@@ -64,7 +100,9 @@
        77  PW-HAS-SP                       PIC 9      VALUE 0.
        77  PW-VALID                        PIC 9      VALUE 0.
 
-       77  I                               PIC 99     VALUE 0.
+   
+       
+       01  PROMPT-TEXT                     PIC X(240) VALUE SPACES.
 
        PROCEDURE DIVISION.
        MAIN.
@@ -79,8 +117,10 @@
               PERFORM READ-MAIN
               EVALUATE TRUE
                  WHEN MAIN-SEL = 1
-                    PERFORM LOGIN-FLOW
+                    PERFORM CREATE-EDIT-FLOW
                  WHEN MAIN-SEL = 2
+                    PERFORM LOGIN-FLOW
+                 WHEN MAIN-SEL = 3
                     PERFORM REGISTER-FLOW
                  WHEN OTHER
                     MOVE "Invalid option. Choose 1 or 2." TO LINE-MSG
@@ -180,13 +220,39 @@
            CLOSE AcctFile
            OPEN INPUT AcctFile
            .
+       APPEND-PROFILE.
+           CLOSE ProfileFile
+           OPEN EXTEND ProfileFile
+           IF FS-PROFILE NOT = "00"
+              DISPLAY "Error opening ProfileFile, status: " FS-PROFILE
+           END-IF
+           
+           MOVE P-USER TO PR-USER
+           MOVE P-FNAME TO PR-FNAME
+           MOVE P-LNAME TO PR-LNAME
+           MOVE P-SCHOOL TO PR-SCHOOL
+           MOVE P-MAJOR TO PR-MAJOR
+           MOVE P-GRADYR TO PR-GRADYR
+           MOVE P-ABOUT TO PR-ABOUT
+           PERFORM VARYING I FROM 1 BY 1 UNTIL I > EXPERIENCE-COUNT
+            MOVE P-EXP-TITLE(I)   TO PR-EXP-TITLE(I)
+            MOVE P-EXP-COMPANY(I) TO PR-EXP-COMPANY(I)
+            MOVE P-EXP-DATES(I)   TO PR-EXP-DATES(I)
+            MOVE P-EXP-DESC(I)    TO PR-EXP-DESC(I)
+           END-PERFORM
 
+           WRITE PROFILE-REC
+           CLOSE ProfileFile
+           OPEN INPUT ProfileFile
+           .
        *> ------------------------------ *
        *> Main menu                      *
        *> ------------------------------ *
        SHOW-MAIN.
-           MOVE "1) Log in"             TO LINE-MSG PERFORM SAY
-           MOVE "2) Create account"     TO LINE-MSG PERFORM SAY
+          
+           MOVE "1) Create/Edit My Profile." TO LINE-MSG PERFORM SAY
+           MOVE "2) Log in"             TO LINE-MSG PERFORM SAY
+           MOVE "3) Create account"     TO LINE-MSG PERFORM SAY
            MOVE "Select an option:"     TO LINE-MSG PERFORM SAY
            .
 
@@ -291,7 +357,7 @@
 
               PERFORM VERIFY-CREDS
               IF LOGIN-OK = 1
-                 SET LOGGED-IN TO TRUE
+                 SET LOGGED-IN TO TRUE 
                  MOVE "Login successful." TO LINE-MSG
                  PERFORM SAY
               ELSE
@@ -300,6 +366,108 @@
               END-IF
            END-PERFORM
            .
+CREATE-EDIT-FLOW.
+    *> ------------------------------
+    *> Collect Basic Info
+    *> ------------------------------
+    MOVE "First Name: " TO PROMPT-TEXT
+    PERFORM PROMPT-AND-READ
+    MOVE FUNCTION TRIM(LAST-LINE) TO PR-FNAME
+
+    MOVE "Last Name: " TO PROMPT-TEXT
+    PERFORM PROMPT-AND-READ
+    MOVE FUNCTION TRIM(LAST-LINE) TO PR-LNAME
+
+    MOVE "University/College Attended: " TO PROMPT-TEXT
+    PERFORM PROMPT-AND-READ
+    MOVE FUNCTION TRIM(LAST-LINE) TO PR-SCHOOL
+
+    MOVE "Major: " TO PROMPT-TEXT
+    PERFORM PROMPT-AND-READ
+    MOVE FUNCTION TRIM(LAST-LINE) TO PR-MAJOR
+
+    MOVE "Graduation Year: " TO PROMPT-TEXT
+    PERFORM PROMPT-AND-READ
+    PERFORM CHECK-YEAR
+    MOVE GRAD-YEAR-STR TO PR-GRADYR
+
+    MOVE "About Me (optional): " TO PROMPT-TEXT
+    PERFORM PROMPT-AND-READ
+    MOVE FUNCTION TRIM(LAST-LINE) TO PR-ABOUT
+
+    *> ------------------------------
+    *> Collect Experience (up to 3)
+    *> ------------------------------
+    MOVE 0 TO EXPERIENCE-COUNT
+    PERFORM VARYING I FROM 1 BY 1 UNTIL I > 3
+        STRING I DELIMITED BY SPACE "(leave blank to skip): " DELIMITED BY SIZE
+            INTO PROMPT-TEXT
+        END-STRING
+        PERFORM PROMPT-AND-READ
+        IF FUNCTION LENGTH(FUNCTION TRIM(LAST-LINE)) = 0
+            EXIT PERFORM *> Skip remaining if blank
+        ELSE
+            MOVE FUNCTION TRIM(LAST-LINE) TO PR-EXP-TITLE(I)
+            
+            MOVE "Company/Organization: " TO PROMPT-TEXT
+            PERFORM PROMPT-AND-READ
+            MOVE FUNCTION TRIM(LAST-LINE) TO PR-EXP-COMPANY(I)
+            
+            MOVE "Dates (e.g., Summer 2024): " TO PROMPT-TEXT
+            PERFORM PROMPT-AND-READ
+            MOVE FUNCTION TRIM(LAST-LINE) TO PR-EXP-DATES(I)
+            
+            MOVE "Description (optional): " TO PROMPT-TEXT
+            PERFORM PROMPT-AND-READ
+            MOVE FUNCTION TRIM(LAST-LINE) TO PR-EXP-DESC(I)
+            
+            ADD 1 TO EXPERIENCE-COUNT
+        END-IF
+    END-PERFORM
+
+   
+    *> ------------------------------
+    *> Save Profile
+    *> ------------------------------
+    MOVE FUNCTION TRIM(U-IN) TO PR-USER
+    PERFORM APPEND-PROFILE
+    MOVE "Profile saved successfully." TO LINE-MSG
+    PERFORM SAY
+
+              
+              
+
+       
+       CHECK-YEAR.
+            PERFORM UNTIL YEAR-VALID = 1
+                MOVE FUNCTION TRIM(LAST-LINE) TO GRAD-YEAR-STR
+        
+                IF FUNCTION LENGTH(GRAD-YEAR-STR) = 4
+                    MOVE 1 TO YEAR-VALID
+                    *> Check each character
+                    PERFORM VARYING I FROM 1 BY 1 UNTIL I > 4
+                        IF GRAD-YEAR-STR(I:1) < "0" OR GRAD-YEAR-STR(I:1) > "9"
+                            MOVE 0 TO YEAR-VALID
+                        END-IF
+                    END-PERFORM
+                ELSE
+                    MOVE 0 TO YEAR-VALID
+                END-IF
+        
+                IF YEAR-VALID = 0
+                    MOVE "Required, must be a valid 4-digit year, e.g., 2025" TO LINE-MSG
+                    PERFORM SAY
+                    PERFORM PROMPT-AND-READ
+                END-IF
+            END-PERFORM
+
+            MOVE GRAD-YEAR-STR TO PR-GRADYR
+              .
+       PROMPT-AND-READ.
+           MOVE PROMPT-TEXT TO LINE-MSG
+           PERFORM SAY
+           PERFORM READ-NEXT
+           MOVE LAST-LINE TO LINE-MSG.
 
        VERIFY-CREDS.
            MOVE 0 TO LOGIN-OK
