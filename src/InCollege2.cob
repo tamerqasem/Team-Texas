@@ -100,7 +100,7 @@
        77  PW-HAS-SP                       PIC 9      VALUE 0.
        77  PW-VALID                        PIC 9      VALUE 0.
 
-   
+       01  CURRENT-USER                    PIC X(20) VALUE SPACES.
        
        01  PROMPT-TEXT                     PIC X(240) VALUE SPACES.
 
@@ -360,6 +360,8 @@
                  SET LOGGED-IN TO TRUE 
                  MOVE "Login successful." TO LINE-MSG
                  PERFORM SAY
+
+                 MOVE FUNCTION TRIM(U-IN) TO CURRENT-USER
               ELSE
                  MOVE "Incorrect credentials. Try again." TO LINE-MSG
                  PERFORM SAY
@@ -391,9 +393,15 @@ CREATE-EDIT-FLOW.
     PERFORM CHECK-YEAR
     MOVE GRAD-YEAR-STR TO PR-GRADYR
 
-    MOVE "About Me (optional): " TO PROMPT-TEXT
+    MOVE "About Me? (Optional) (Y/N): " TO PROMPT-TEXT
     PERFORM PROMPT-AND-READ
-    MOVE FUNCTION TRIM(LAST-LINE) TO PR-ABOUT
+    IF FUNCTION UPPER-CASE(FUNCTION TRIM(LAST-LINE)) = "Y"
+        MOVE "About Me (optional): " TO PROMPT-TEXT
+        PERFORM PROMPT-AND-READ
+        MOVE FUNCTION TRIM(LAST-LINE) TO PR-ABOUT
+    ELSE
+        MOVE SPACES TO PR-ABOUT
+    END-IF
 
     *> ------------------------------
     *> Collect Experience (up to 3)
@@ -425,7 +433,31 @@ CREATE-EDIT-FLOW.
         END-IF
     END-PERFORM
 
-   
+
+    *> ------------------------------
+    *> Collect Education
+    *> ------------------------------
+    MOVE 0 TO EDUCATION-COUNT
+    PERFORM VARYING I FROM 1 BY 1 UNTIL I > 3
+        MOVE "Degree: (blank to skip): " TO PROMPT-TEXT
+        PERFORM PROMPT-AND-READ
+        IF FUNCTION LENGTH(FUNCTION TRIM(LAST-LINE)) = 0
+            EXIT PERFORM
+        END-IF
+        MOVE FUNCTION TRIM(LAST-LINE) TO PR-EDU-DEGREE(I)
+
+        MOVE "University/College: " TO PROMPT-TEXT
+        PERFORM PROMPT-AND-READ
+        MOVE FUNCTION TRIM(LAST-LINE) TO PR-EDU-SCHOOL(I)
+
+        MOVE "Years Attended: " TO PROMPT-TEXT
+        PERFORM PROMPT-AND-READ
+        MOVE FUNCTION TRIM(LAST-LINE) TO PR-EDU-YEARS(I)
+
+        ADD 1 TO EDUCATION-COUNT
+    END-PERFORM
+      
+      
     *> ------------------------------
     *> Save Profile
     *> ------------------------------
@@ -492,6 +524,7 @@ CREATE-EDIT-FLOW.
               MOVE "1) Search jobs (coming soon)" TO LINE-MSG PERFORM SAY
               MOVE "2) Find people (coming soon)" TO LINE-MSG PERFORM SAY
               MOVE "3) Learn a new skill"         TO LINE-MSG PERFORM SAY
+              MOVE "4) View my profile"           TO LINE-MSG PERFORM SAY
               MOVE "Choose an option:"            TO LINE-MSG PERFORM SAY
 
               PERFORM READ-NEXT
@@ -506,13 +539,61 @@ CREATE-EDIT-FLOW.
                     PERFORM SAY
                  WHEN NAV-SEL = 3
                     PERFORM SKILL-MENU
+                 WHEN NAV-SEL = 4
+                    PERFORM VIEW-PROFILE
                  WHEN OTHER
-                    MOVE "Please pick 1, 2, or 3." TO LINE-MSG
+                    MOVE "Please pick 1, 2, 3, or 4." TO LINE-MSG
                     PERFORM SAY
               END-EVALUATE
            END-PERFORM
            .
 
+       *> ------------------------------ *
+       *> View-my-profile         *
+       *> ------------------------------ *
+      
+      VIEW-PROFILE.
+           MOVE "----- View Profile -----" TO LINE-MSG
+           PERFORM SAY
+
+           OPEN INPUT ProfileFile
+           PERFORM UNTIL 1 = 2
+              READ ProfileFile
+                 AT END EXIT PERFORM
+              END-READ
+              IF FUNCTION TRIM(PR-USER) = FUNCTION TRIM(CURRENT-USER)
+                 MOVE "Name:" TO LINE-MSG PERFORM SAY
+                 MOVE PR-FNAME TO LINE-MSG PERFORM SAY
+                 MOVE PR-LNAME TO LINE-MSG PERFORM SAY
+                 MOVE "University:" TO LINE-MSG PERFORM SAY
+                 MOVE PR-SCHOOL   TO LINE-MSG PERFORM SAY
+                 MOVE "Major:"     TO LINE-MSG PERFORM SAY
+                 MOVE PR-MAJOR    TO LINE-MSG PERFORM SAY
+                 MOVE "Graduation Year:" TO LINE-MSG PERFORM SAY
+                 MOVE PR-GRADYR   TO LINE-MSG PERFORM SAY
+
+                 IF PR-ABOUT NOT = SPACES
+                    MOVE "About Me:" TO LINE-MSG PERFORM SAY
+                    MOVE PR-ABOUT   TO LINE-MSG PERFORM SAY
+                 END-IF
+
+                 MOVE "Education:" TO LINE-MSG PERFORM SAY
+                 PERFORM VARYING I FROM 1 BY 1 UNTIL I > 3
+                    IF PR-EDU-DEGREE(I) NOT = SPACES
+                       MOVE PR-EDU-DEGREE(I) TO LINE-MSG PERFORM SAY
+                       MOVE PR-EDU-SCHOOL(I) TO LINE-MSG PERFORM SAY
+                       MOVE PR-EDU-YEARS(I)  TO LINE-MSG PERFORM SAY
+                    END-IF
+                 END-PERFORM
+
+                 EXIT PERFORM
+              END-IF
+           END-PERFORM
+           CLOSE ProfileFile
+           .
+
+
+      
        SKILL-MENU.
            PERFORM UNTIL 1 = 2
               MOVE "Learn a New Skill" TO LINE-MSG PERFORM SAY
