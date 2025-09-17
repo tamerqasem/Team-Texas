@@ -111,6 +111,10 @@
 
        01  GRAD-YR-STR                     PIC X(4)   VALUE SPACES.
        77  YEAR-VALID                      PIC 9      VALUE 0.
+       77  YEAR-LEN                        PIC 99     VALUE 0.
+       77  YEAR-NUM                        PIC 9(4)   VALUE 0.
+       01  YEAR-RAW                        PIC X(16)  VALUE SPACES.
+
        77  I                               PIC 99     VALUE 0.
        77  EXPERIENCE-COUNT                PIC 9      VALUE 0.
        77  EDUCATION-COUNT                 PIC 9      VALUE 0.
@@ -141,8 +145,6 @@
        77  REPLACED-FLAG                   PIC 9      VALUE 0.
 
        01  FULL-NAME                       PIC X(120) VALUE SPACES.
-
-       
 
        *> Stable NEW buffer so READs never clobber inputs
        01  NEW-PROFILE.
@@ -505,8 +507,8 @@
               END-IF
            END-PERFORM
 
-           *> Graduation Year (validated)
-           MOVE "Enter Graduation Year ('YYYY'):" TO PROMPT-TEXT
+           *> Graduation Year (validated against RAW, not X(4))
+           MOVE "Enter Graduation Year (YYYY):" TO PROMPT-TEXT
            PERFORM PROMPT-AND-READ
            PERFORM CHECK-YEAR
            MOVE GRAD-YR-STR TO PR-GRADYR
@@ -520,7 +522,7 @@
               MOVE SPACES TO PR-ABOUT
            END-IF
 
-           *> Experience entries (up to 3) — gate per entry
+           *> Experience entries (up to 3)
            MOVE SPACES TO PR-EXP-TITLE(1) PR-EXP-TITLE(2) PR-EXP-TITLE(3)
            MOVE 0 TO EXPERIENCE-COUNT
            PERFORM VARYING I FROM 1 BY 1 UNTIL I > 3
@@ -535,9 +537,24 @@
                  EXIT PERFORM
               END-IF
 
-              MOVE FUNCTION TRIM(LAST-LINE) TO PR-EXP-TITLE(I)
+              *> FIRST FIELD LABEL: Title
               MOVE I TO I-DISPLAY
+              MOVE SPACES TO LINE-MSG
+              STRING "Experience #" I-DISPLAY " - Title:" DELIMITED BY SIZE
+                 INTO LINE-MSG
+              END-STRING
+              PERFORM SAY
+              *> Use the previously entered line as the Title if user typed it already
+              *> Otherwise, read now
+              IF FUNCTION LENGTH(FUNCTION TRIM(PR-EXP-TITLE(I))) = 0
+                 MOVE FUNCTION TRIM(LAST-LINE) TO PR-EXP-TITLE(I)
+              END-IF
+              IF FUNCTION LENGTH(FUNCTION TRIM(PR-EXP-TITLE(I))) = 0
+                 PERFORM READ-NEXT
+                 MOVE FUNCTION TRIM(LAST-LINE) TO PR-EXP-TITLE(I)
+              END-IF
 
+              *> Company
               MOVE SPACES TO LINE-MSG
               STRING "Experience #" I-DISPLAY " - Company/Organization:" DELIMITED BY SIZE
                  INTO LINE-MSG
@@ -546,6 +563,7 @@
               PERFORM READ-NEXT
               MOVE FUNCTION TRIM(LAST-LINE) TO PR-EXP-COMPANY(I)
 
+              *> Dates
               MOVE SPACES TO LINE-MSG
               STRING "Experience #" I-DISPLAY " - Dates (e.g., Summer 2024):" DELIMITED BY SIZE
                  INTO LINE-MSG
@@ -554,6 +572,7 @@
               PERFORM READ-NEXT
               MOVE FUNCTION TRIM(LAST-LINE) TO PR-EXP-DATES(I)
 
+              *> Description (optional)
               MOVE SPACES TO LINE-MSG
               STRING "Experience #" I-DISPLAY " - Description (optional, max 100 chars, blank to skip):"
                  DELIMITED BY SIZE INTO LINE-MSG
@@ -565,7 +584,7 @@
               ADD 1 TO EXPERIENCE-COUNT
            END-PERFORM
 
-           *> Education entries (up to 3) — gate per entry
+           *> Education entries (up to 3)
            MOVE SPACES TO PR-EDU-DEGREE(1) PR-EDU-DEGREE(2) PR-EDU-DEGREE(3)
            MOVE 0 TO EDUCATION-COUNT
            PERFORM VARYING I FROM 1 BY 1 UNTIL I > 3
@@ -580,9 +599,23 @@
                  EXIT PERFORM
               END-IF
 
-              MOVE FUNCTION TRIM(LAST-LINE) TO PR-EDU-DEGREE(I)
+              *> FIRST FIELD LABEL: Degree
               MOVE I TO E-DISPLAY
+              MOVE SPACES TO LINE-MSG
+              STRING "Education #" E-DISPLAY " - Degree:" DELIMITED BY SIZE
+                 INTO LINE-MSG
+              END-STRING
+              PERFORM SAY
+              *> Use the previously entered line as Degree if present
+              IF FUNCTION LENGTH(FUNCTION TRIM(PR-EDU-DEGREE(I))) = 0
+                 MOVE FUNCTION TRIM(LAST-LINE) TO PR-EDU-DEGREE(I)
+              END-IF
+              IF FUNCTION LENGTH(FUNCTION TRIM(PR-EDU-DEGREE(I))) = 0
+                 PERFORM READ-NEXT
+                 MOVE FUNCTION TRIM(LAST-LINE) TO PR-EDU-DEGREE(I)
+              END-IF
 
+              *> University/College
               MOVE SPACES TO LINE-MSG
               STRING "Education #" E-DISPLAY " - University/College:" DELIMITED BY SIZE
                  INTO LINE-MSG
@@ -591,6 +624,7 @@
               PERFORM READ-NEXT
               MOVE FUNCTION TRIM(LAST-LINE) TO PR-EDU-SCHOOL(I)
 
+              *> Years
               MOVE SPACES TO LINE-MSG
               STRING "Education #" E-DISPLAY " - Years Attended (e.g., 2023-2025):" DELIMITED BY SIZE
                  INTO LINE-MSG
@@ -749,27 +783,26 @@
        CHECK-YEAR.
            MOVE 0 TO YEAR-VALID
            PERFORM UNTIL YEAR-VALID = 1
-              MOVE FUNCTION TRIM(LAST-LINE) TO GRAD-YR-STR
-              IF FUNCTION LENGTH(GRAD-YR-STR) = 4
-                 MOVE 1 TO YEAR-VALID
-                 PERFORM VARYING I FROM 1 BY 1 UNTIL I > 4
-                    IF GRAD-YR-STR(I:1) < "0" OR GRAD-YR-STR(I:1) > "9"
-                       MOVE 0 TO YEAR-VALID
-                    END-IF
-                 END-PERFORM
-                 IF YEAR-VALID = 1
-                    IF GRAD-YR-STR < "1900" OR GRAD-YR-STR > "2100"
-                       MOVE 0 TO YEAR-VALID
-                    END-IF
+              MOVE FUNCTION TRIM(LAST-LINE) TO YEAR-RAW
+              MOVE FUNCTION LENGTH(FUNCTION TRIM(YEAR-RAW)) TO YEAR-LEN
+
+              IF YEAR-LEN = 4
+                 AND YEAR-RAW(1:1) >= "0" AND YEAR-RAW(1:1) <= "9"
+                 AND YEAR-RAW(2:1) >= "0" AND YEAR-RAW(2:1) <= "9"
+                 AND YEAR-RAW(3:1) >= "0" AND YEAR-RAW(3:1) <= "9"
+                 AND YEAR-RAW(4:1) >= "0" AND YEAR-RAW(4:1) <= "9"
+              THEN
+                 MOVE FUNCTION NUMVAL(YEAR-RAW(1:4)) TO YEAR-NUM
+                 IF YEAR-NUM >= 1900 AND YEAR-NUM <= 2100
+                    MOVE YEAR-RAW(1:4) TO GRAD-YR-STR
+                    MOVE 1 TO YEAR-VALID
                  END-IF
-              ELSE
-                 MOVE 0 TO YEAR-VALID
               END-IF
 
               IF YEAR-VALID = 0
-                 MOVE "Required, must be a valid 4 digit year (1900-2100), e.g., 2025" TO LINE-MSG
+                 MOVE "Required, must be a valid 4-digit year (1900-2100), e.g., 2025" TO LINE-MSG
                  PERFORM SAY
-                 MOVE "Enter Graduation Year ('YYYY'):" TO PROMPT-TEXT
+                 MOVE "Enter Graduation Year (YYYY):" TO PROMPT-TEXT
                  PERFORM PROMPT-AND-READ
               END-IF
            END-PERFORM
@@ -880,4 +913,3 @@
               EXIT PARAGRAPH
            END-PERFORM
            .
-           
