@@ -13,6 +13,9 @@
            SELECT InFile    ASSIGN TO "data/InCollege-Input.txt"
                ORGANIZATION IS LINE SEQUENTIAL
                FILE STATUS  IS FS-IN.
+           SELECT ProfileFile ASSIGN TO "data/InCollege-Profiles.dat"
+               ORGANIZATION IS LINE SEQUENTIAL
+               FILE STATUS  IS FS-PROFILE.
 
        DATA DIVISION.
        FILE SECTION.
@@ -27,6 +30,25 @@
        FD  InFile.
        01  IN-REC                          PIC X(240).
 
+       FD  ProfileFile.
+       01  PROFILE-REC.
+           05 PR-USER                      PIC X(20).
+           05 PR-FNAME                     PIC X(20).
+           05 PR-LNAME                     PIC X(20).
+           05 PR-SCHOOL                    PIC X(30).
+           05 PR-MAJOR                     PIC X(30).
+           05 PR-GRADYR                    PIC X(4).
+           05 PR-ABOUT                     PIC X(100).
+           05 PR-EXPERIENCE-TABLE OCCURS 3 TIMES.
+              10 PR-EXP-TITLE              PIC X(30).
+              10 PR-EXP-COMPANY            PIC X(30).
+              10 PR-EXP-DATES              PIC X(20).
+              10 PR-EXP-DESC               PIC X(50).
+           05 PR-EDUCATION-TABLE OCCURS 3 TIMES.
+              10 PR-EDU-DEGREE             PIC X(30).
+              10 PR-EDU-SCHOOL             PIC X(30).
+              10 PR-EDU-YEARS              PIC X(10).
+      
        WORKING-STORAGE SECTION.
        77  FS-ACCT                         PIC XX     VALUE SPACES.
        77  FS-IN                           PIC XX     VALUE SPACES.
@@ -66,6 +88,11 @@
 
        77  I                               PIC 99     VALUE 0.
 
+       01  SRCH-NAME-IN                    PIC X(50)  VALUE SPACES.
+       01  SRCH-NAME-NORM                  PIC X(50)  VALUE SPACES.
+       01  REC-NAME-NORM                   PIC X(50)  VALUE SPACES.
+       77  FOUND-FLAG                      PIC 9      VALUE 0.
+      
        PROCEDURE DIVISION.
        MAIN.
            PERFORM BOOT
@@ -113,9 +140,16 @@
            END-IF
            .
 
+           OPEN INPUT ProfileFile
+           IF FS-PROFILE = "35"
+              *> no profiles file yet; searching will report not found
+              CLOSE ProfileFile
+           END-IF
+           .
        SHUTDOWN.
            CLOSE AcctFile
            CLOSE InFile
+           CLOSE ProfileFile
            CLOSE OutFile
            .
 
@@ -343,6 +377,87 @@
                     PERFORM SAY
               END-EVALUATE
            END-PERFORM
+           .
+      
+       *> ------------------------------ *
+       *> Epic 3 – Basic User Search     *
+       *> ------------------------------ *
+       SEARCH-USER.
+           MOVE "Enter the full name of the person you are looking for:" TO LINE-MSG
+           PERFORM SAY
+           PERFORM READ-NEXT
+           MOVE LAST-LINE TO SRCH-NAME-IN
+           MOVE FUNCTION UPPER-CASE(FUNCTION TRIM(SRCH-NAME-IN)) TO SRCH-NAME-NORM
+
+           MOVE 0 TO FOUND-FLAG
+
+           OPEN INPUT ProfileFile
+           IF FS-PROFILE = "35"
+              MOVE "No one by that name could be found." TO LINE-MSG
+              PERFORM SAY
+              EXIT PARAGRAPH
+           END-IF
+
+           PERFORM UNTIL 1 = 2
+              READ ProfileFile AT END EXIT PERFORM END-READ
+
+              STRING FUNCTION TRIM(PR-FNAME)
+                     " "
+                     FUNCTION TRIM(PR-LNAME)
+                     DELIMITED BY SIZE
+                     INTO REC-NAME-NORM
+              END-STRING
+              MOVE FUNCTION UPPER-CASE(FUNCTION TRIM(REC-NAME-NORM)) TO REC-NAME-NORM
+
+              IF REC-NAME-NORM = SRCH-NAME-NORM
+                 MOVE 1 TO FOUND-FLAG
+
+                 MOVE "----- Profile Found -----" TO LINE-MSG PERFORM SAY
+                 MOVE "Name:" TO LINE-MSG PERFORM SAY
+                 MOVE PR-FNAME TO LINE-MSG PERFORM SAY
+                 MOVE PR-LNAME TO LINE-MSG PERFORM SAY
+                 MOVE "University:" TO LINE-MSG PERFORM SAY
+                 MOVE PR-SCHOOL TO LINE-MSG PERFORM SAY
+                 MOVE "Major:" TO LINE-MSG PERFORM SAY
+                 MOVE PR-MAJOR TO LINE-MSG PERFORM SAY
+                 MOVE "Graduation Year:" TO LINE-MSG PERFORM SAY
+                 MOVE PR-GRADYR TO LINE-MSG PERFORM SAY
+                 IF PR-ABOUT NOT = SPACES
+                    MOVE "About:" TO LINE-MSG PERFORM SAY
+                    MOVE PR-ABOUT TO LINE-MSG PERFORM SAY
+                 END-IF
+
+                 MOVE "Experience:" TO LINE-MSG PERFORM SAY
+                 PERFORM VARYING I FROM 1 BY 1 UNTIL I > 3
+                    IF PR-EXP-TITLE(I) NOT = SPACES
+                       MOVE PR-EXP-TITLE(I)   TO LINE-MSG PERFORM SAY
+                       MOVE PR-EXP-COMPANY(I) TO LINE-MSG PERFORM SAY
+                       MOVE PR-EXP-DATES(I)   TO LINE-MSG PERFORM SAY
+                       IF PR-EXP-DESC(I) NOT = SPACES
+                          MOVE PR-EXP-DESC(I) TO LINE-MSG PERFORM SAY
+                       END-IF
+                    END-IF
+                 END-PERFORM
+
+                 MOVE "Education:" TO LINE-MSG PERFORM SAY
+                 PERFORM VARYING I FROM 1 BY 1 UNTIL I > 3
+                    IF PR-EDU-DEGREE(I) NOT = SPACES
+                       MOVE PR-EDU-DEGREE(I) TO LINE-MSG PERFORM SAY
+                       MOVE PR-EDU-SCHOOL(I) TO LINE-MSG PERFORM SAY
+                       MOVE PR-EDU-YEARS(I)  TO LINE-MSG PERFORM SAY
+                    END-IF
+                 END-PERFORM
+
+                 EXIT PERFORM
+              END-IF
+           END-PERFORM
+
+           CLOSE ProfileFile
+
+           IF FOUND-FLAG = 0
+              MOVE "No one by that name could be found." TO LINE-MSG
+              PERFORM SAY
+           END-IF
            .
 
        SKILL-MENU.
