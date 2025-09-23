@@ -1,0 +1,28 @@
+Welcome to InCollege!
+1. Log In
+2. Create New Account
+Enter your choice:
+Please enter your username:
+Please enter your password:
+That username is already taken. Please log in.
+1. Log In
+2. Create New Account
+Enter your choice:
+Please enter your username:
+Please enter your password:
+You have successfully logged in.
+Welcome, alice!
+1. Create/Edit My Profile
+2. View My Profile
+3. Search for User
+4. Learn a New Skill
+Enter your choice:
+--- Create/Edit Profile ---
+Enter First Name:
+Enter Last Name:
+Enter University/College Attended:
+Enter Major:
+Enter Graduation Year ('YYYY'):
+Required, must be a valid 4 digit year (1900-2100), e.g., 2025
+Enter Graduation Year ('YYYY'):
+--- END_OF_PROGRAM_EXECUTION ---
