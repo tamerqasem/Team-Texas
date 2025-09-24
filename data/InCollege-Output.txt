@@ -4,12 +4,6 @@ Welcome to InCollege!
 Enter your choice:
 Please enter your username:
 Please enter your password:
-Incorrect credentials. Try again.
-1. Log In
-2. Create New Account
-Enter your choice:
-Please enter your username:
-Please enter your password:
 You have successfully logged in.
 Welcome, testuser!
 1. Create/Edit My Profile
@@ -17,19 +11,23 @@ Welcome, testuser!
 3. Find someone you know
 4. Learn a New Skill
 Enter your choice:
-Please pick 1, 2, 3, or 4.
+--- Your Profile ---
+No profile found for this user yet.
 1. Create/Edit My Profile
 2. View My Profile
 3. Find someone you know
 4. Learn a New Skill
 Enter your choice:
-Learn a New Skill (coming soon)
-1. Create/Edit My Profile
-2. View My Profile
-3. Find someone you know
-4. Learn a New Skill
-Enter your choice:
-Please pick 1, 2, 3, or 4.
+Enter the full name of the person you are looking for:
+--- Found User Profile ---
+Name: Alex Kim
+University: State University
+Major: Computer Science
+Graduation Year: 2025
+Experience:
+  None
+Education:
+  None
 1. Create/Edit My Profile
 2. View My Profile
 3. Find someone you know
