@@ -1,8 +1,0 @@
-1
-testuser
-Abcdef1!
-2
-3
-Alex Kim
-5
-exit
