@@ -26,6 +26,16 @@
                ORGANIZATION IS SEQUENTIAL
                FILE STATUS  IS FS-TMP.
 
+           *> Permanents storage for connections data
+           SELECT ConnectionsFile ASSIGN TO "data/connections.dat"
+               ORGANIZATION IS LINE SEQUENTIAL
+               FILE STATUS  IS FS-CONN.
+
+           SELECT TempConnectionsFile ASSIGN TO "data/connections.tmp"
+               ORGANIZATION IS LINE SEQUENTIAL
+               FILE STATUS  IS FS-CONN-TMP.
+
+
        DATA DIVISION.
        FILE SECTION.
 
@@ -85,12 +95,36 @@
        FD  InFile.
        01  IN-REC                          PIC X(240).
 
+       FD ConnectionsFile
+           RECORD CONTAINS 80 CHARACTERS
+           BLOCK CONTAINS 0 RECORDS.
+
+      *>CR for connection request
+       01  CONNECTION-REC.
+           05 CR-REQUESTER                 PIC X(20).
+           05 CR-TARGET                    PIC X(20).
+           05 CR-STATUS                    PIC X(10).
+           05 CR-DATE                      PIC X(10).
+           05 CR-FILLER                    PIC X(20).
+
+       FD TempConnectionsFile
+           RECORD CONTAINS 80 CHARACTERS
+           BLOCK CONTAINS 0 RECORDS.
+       01  TEMP-CONN-REC.
+           05 TC-REQUESTER                 PIC X(20).
+           05 TC-TARGET                    PIC X(20).
+           05 TC-STATUS                    PIC X(10).
+           05 TC-DATE                      PIC X(10).
+           05 TC-FILLER                    PIC X(20).
+
        WORKING-STORAGE SECTION.
        77  FS-OUT                          PIC XX     VALUE SPACES.
        77  FS-ACCT                         PIC XX     VALUE SPACES.
        77  FS-PROFILE                      PIC XX     VALUE SPACES.
        77  FS-TMP                          PIC XX     VALUE SPACES.
        77  FS-IN                           PIC XX     VALUE SPACES.
+       77  FS-CONN                         PIC XX     VALUE SPACES.
+       77  FS-CONN-TMP                     PIC XX     VALUE SPACES.
 
        01  IN-EOF-FLAG                     PIC 9      VALUE 0.
            88  IN-AT-EOF                              VALUE 1.
@@ -102,6 +136,8 @@
        01  RAW-SEL                         PIC X(12)  VALUE SPACES.
        77  MAIN-SEL                        PIC 99     VALUE 0.
        77  NAV-SEL                         PIC 99     VALUE 0.
+       77  USER-SEL                         PIC 99     VALUE 0.
+
 
        01  U-IN                            PIC X(20)  VALUE SPACES.
        01  P-IN                            PIC X(20)  VALUE SPACES.
@@ -144,13 +180,10 @@
        01  SEARCH-NAME                     PIC X(120) VALUE SPACES.
        01  SEARCH-NAME-U                   PIC X(120) VALUE SPACES.
        01  FULLNAME-U                      PIC X(120) VALUE SPACES.
-       
+
        77  YEAR-LEN                        PIC 99     VALUE 0.
        77  YEAR-NUM                        PIC 9(4)   VALUE 0.
        01  YEAR-RAW                        PIC X(16)  VALUE SPACES.
-
-
-       
 
        *> Stable NEW buffer so READs never clobber inputs
        01  NEW-PROFILE.
@@ -170,6 +203,14 @@
               10 NP-EDU-DEGREE             PIC X(30).
               10 NP-EDU-SCHOOL             PIC X(30).
               10 NP-EDU-YEARS              PIC X(10).
+
+       *>   working storage for new connections (NC for new connection)
+       01  NEW-CONNECTION.
+           05 NC-REQUESTER                 PIC X(20).
+           05 NC-TARGET                    PIC X(20).
+           05 NC-STATUS                    PIC X(10).
+           05 NC-DATE                      PIC X(10).
+           05 NC-FILLER                    PIC X(20).
 
        PROCEDURE DIVISION.
        MAIN.
@@ -223,6 +264,14 @@
               PERFORM SAY
               PERFORM HALT-PROGRAM
            END-IF
+
+           OPEN INPUT ConnectionsFile
+           IF FS-CONN = "35"
+               OPEN OUTPUT ConnectionsFile
+               CLOSE ConnectionsFile
+               MOVE SPACES TO FS-CONN
+               OPEN INPUT ConnectionsFile
+           END-IF
            .
 
        SHUTDOWN.
@@ -231,6 +280,8 @@
            CLOSE TempProfileFile
            CLOSE InFile
            CLOSE OutFile
+           CLOSE ConnectionsFile
+           CLOSE TempConnectionsFile
            .
 
        *> ---------------- Utilities ----------------
@@ -322,6 +373,7 @@
               MOVE "2. View My Profile"        TO LINE-MSG PERFORM SAY
               MOVE "3. Find someone you know"  TO LINE-MSG PERFORM SAY
               MOVE "4. Learn a New Skill"      TO LINE-MSG PERFORM SAY
+              MOVE "5. View Connection Requests" TO LINE-MSG PERFORM SAY
               MOVE "Enter your choice:"        TO LINE-MSG PERFORM SAY
 
               PERFORM READ-NEXT
@@ -337,7 +389,8 @@
                     WHEN NAV-SEL = 2  PERFORM VIEW-PROFILE
                     WHEN NAV-SEL = 3  PERFORM FIND-SOMEONE
                     WHEN NAV-SEL = 4  PERFORM SKILL-MENU
-                    WHEN OTHER        MOVE "Please pick 1, 2, 3, or 4." TO LINE-MSG PERFORM SAY
+                    WHEN NAV-SEL = 5  PERFORM CONNECTION-REQUESTS
+                    WHEN OTHER        MOVE "Please pick 1, 2, 3, 4, or 5." TO LINE-MSG PERFORM SAY
                  END-EVALUATE
               END-IF
            END-PERFORM
@@ -352,6 +405,19 @@
               INTO LINE-MSG
            END-STRING
            PERFORM SAY
+           .
+
+       ASK-FOR-USER-CONNECTION.
+           MOVE "Would you like to connect with this user?"             TO LINE-MSG PERFORM SAY
+           MOVE "1. Yes"             TO LINE-MSG PERFORM SAY
+           MOVE "2. No" TO LINE-MSG PERFORM SAY
+           MOVE "Enter your choice:"    TO LINE-MSG PERFORM SAY
+           .
+
+       READ-ANSWER-FOR-CONNECTION.
+           PERFORM READ-NEXT
+           MOVE LAST-LINE TO RAW-SEL
+           MOVE FUNCTION NUMVAL(FUNCTION TRIM(RAW-SEL)) TO USER-SEL
            .
 
        *> ---------------- Registration / Login ----------------
@@ -918,9 +984,20 @@
                  MOVE "--- Found User Profile ---" TO LINE-MSG PERFORM SAY
                  PERFORM DISPLAY-PR
                  MOVE 1 TO PROFILE-FOUND
-                 EXIT PERFORM
+                 PERFORM ASK-FOR-USER-CONNECTION
+                 PERFORM READ-ANSWER-FOR-CONNECTION
+       *>  Logic for promting the user if they want to connection with the searched user or not
+                 EVALUATE TRUE
+                   WHEN USER-SEL = 1
+                       PERFORM CONNECT-WITH-FRIEND
+                   WHEN USER-SEL = 2
+                       PERFORM DASHBOARD
+                   WHEN OTHER
+                       MOVE "Invalid option. Choose 1 or 2." TO LINE-MSG
+                       PERFORM SAY
+                   END-EVALUATE
               END-IF
-           END-PERFORM
+            END-PERFORM
 
            CLOSE ProfileFile
 
@@ -936,4 +1013,45 @@
               EXIT PARAGRAPH
            END-PERFORM
            .
-           
+       *> ---------------- Connection Requests ----------------
+       CONNECTION-REQUESTS.
+       PERFORM UNTIL 1 = 2
+              MOVE "View Connection Requests " TO LINE-MSG PERFORM SAY
+              EXIT PARAGRAPH
+           END-PERFORM
+           .
+
+       *> ----------------- Handle connections ------------------
+       CONNECT-WITH-FRIEND.
+       MOVE FUNCTION UPPER-CASE(FUNCTION TRIM(CURRENT-USER)) TO NC-REQUESTER
+       MOVE FUNCTION UPPER-CASE(FUNCTION TRIM(PR-USER)) TO NC-TARGET
+       MOVE "PENDING" TO NC-STATUS
+       MOVE "2025-01-15" TO NC-DATE
+       MOVE SPACES TO NC-FILLER
+
+      *> Save the connection to file
+       PERFORM APPEND-CONNECTION
+       STRING "You've connected with " DELIMITED BY SIZE
+           FUNCTION TRIM (FULLNAME-U) DELIMITED BY SIZE
+           INTO LINE-MSG
+       END-STRING
+       PERFORM SAY
+       .
+
+      *>Handles adding connections to file
+       APPEND-CONNECTION.
+           CLOSE ConnectionsFile
+           OPEN EXTEND ConnectionsFile
+
+      *>Copy from new connections buffer to file record
+           MOVE NC-REQUESTER   TO CR-REQUESTER
+           MOVE NC-TARGET      TO CR-TARGET
+           MOVE NC-STATUS      TO CR-STATUS
+           MOVE NC-DATE        TO CR-DATE
+           MOVE NC-FILLER      TO CR-FILLER
+
+           WRITE CONNECTION-REC
+
+           CLOSE ConnectionsFile
+           OPEN INPUT ConnectionsFile
+           .
