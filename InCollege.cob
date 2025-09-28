@@ -1031,7 +1031,7 @@
 
       *> Save the connection to file
        PERFORM APPEND-CONNECTION
-       STRING "You've connected with " DELIMITED BY SIZE
+       STRING "You've sent a connection to " DELIMITED BY SIZE
            FUNCTION TRIM (FULLNAME-U) DELIMITED BY SIZE
            INTO LINE-MSG
        END-STRING
