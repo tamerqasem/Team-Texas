@@ -5,7 +5,7 @@ Enter your choice:
 Please enter your username:
 Please enter your password:
 You have successfully logged in.
-Welcome, alice!
+Welcome, testuser!
 1. Create/Edit My Profile
 2. View My Profile
 3. Find someone you know
@@ -14,25 +14,25 @@ Welcome, alice!
 Enter your choice:
 Enter the full name of the person you are looking for:
 --- Found User Profile ---
-Name: Bob Smith
-University: University of Florida
+Name: Suyog Bam
+University: University of Central Florida
 Major: Computer Science
 Graduation Year: 2025
-About Me: Passionate about software development
+About Me: Software engineering student
 Experience:
   Title: Software Developer Intern
-  Company: Tech Corp
+  Company: Tech Solutions
   Dates: Summer 2024
-  Description: Developed web applications using React and Node.js
+  Description: Developed mobile applications
 Education:
   Degree: Bachelor of Science
-  University: University of Florida
+  University: University of Central Florida
   Years: 2021-2025
 -------------------------
 1. Send Connection Request
 2. Back to Main Menu
 Enter your choice:
-Connection request sent to Bob Smith.
+Connection request sent to Suyog Bam.
 1. Create/Edit My Profile
 2. View My Profile
 3. Find someone you know

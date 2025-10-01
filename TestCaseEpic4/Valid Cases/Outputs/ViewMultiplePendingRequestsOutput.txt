@@ -5,7 +5,7 @@ Enter your choice:
 Please enter your username:
 Please enter your password:
 You have successfully logged in.
-Welcome, charlie!
+Welcome, suyog!
 1. Create/Edit My Profile
 2. View My Profile
 3. Find someone you know
@@ -13,8 +13,8 @@ Welcome, charlie!
 5. Learn a New Skill
 Enter your choice:
 --- Pending Connection Requests ---
- - Alice Johnson
- - Bob Smith
+ - testuser
+ - student1
 -----------------------------------
 1. Create/Edit My Profile
 2. View My Profile

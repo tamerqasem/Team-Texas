@@ -5,7 +5,7 @@ Enter your choice:
 Please enter your username:
 Please enter your password:
 You have successfully logged in.
-Welcome, eve!
+Welcome, newuser!
 1. Create/Edit My Profile
 2. View My Profile
 3. Find someone you know

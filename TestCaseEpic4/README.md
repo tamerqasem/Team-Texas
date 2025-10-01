@@ -30,24 +30,20 @@ This directory contains test cases for Epic 4, which implements connection reque
 ## Test Data Requirements
 
 ### User Accounts (in data/accounts.dat)
-- alice / Password123!
-- bob / Password123!
-- charlie / Password123!
-- david / Password123!
-- eve / Password123!
-- frank / Password123!
+- testuser / Abcdef1!
+- suyog / Pass@2025
+- student1 / Password@1
+- newuser / Newuser1!
 
 ### User Profiles (in data/InCollege-Profiles.dat)
-- Alice Johnson (alice) - University of Central Florida, Computer Engineering, 2024
-- Bob Smith (bob) - University of Florida, Computer Science, 2025
-- Emma Wilson (emma) - Florida State University, Data Science, 2024
-- Charlie Brown (charlie) - University of Miami, Business, 2023
-- David Wilson (david) - Florida Institute of Technology, Engineering, 2024
+- Suyog Bam (suyog) - University of Central Florida, Computer Science, 2025
+- New User (newuser) - University of Central Florida, Computer Science, 2025
+- Additional profiles as created by users
 
 ### Connection Requests (in data/InCollege-Requests.dat)
-- alice -> bob
-- charlie -> alice
-- david -> bob
+- testuser -> suyog
+- student1 -> suyog
+- newuser -> suyog
 
 ## Expected Behaviors
 
