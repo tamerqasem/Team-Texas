@@ -25,17 +25,10 @@
            SELECT TempProfileFile ASSIGN TO "data/InCollege-Profiles.tmp"
                ORGANIZATION IS SEQUENTIAL
                FILE STATUS  IS FS-TMP.
-
-           *> Permanents storage for connections data
-           SELECT ConnectionsFile ASSIGN TO "data/connections.dat"
+           SELECT ReqFile         ASSIGN TO "data/InCollege-Requests.dat"
                ORGANIZATION IS LINE SEQUENTIAL
-               FILE STATUS  IS FS-CONN.
-
-           SELECT TempConnectionsFile ASSIGN TO "data/connections.tmp"
-               ORGANIZATION IS LINE SEQUENTIAL
-               FILE STATUS  IS FS-CONN-TMP.
-
-
+               FILE STATUS  IS FS-REQ.
+          
        DATA DIVISION.
        FILE SECTION.
 
@@ -94,28 +87,11 @@
 
        FD  InFile.
        01  IN-REC                          PIC X(240).
+       FD  ReqFile.
+       01  REQ-REC.
+           05 REQ-SENDER                  PIC X(20).   *> UPPER-CASE username
+           05 REQ-RECIP                   PIC X(20).   *> UPPER-CASE username
 
-       FD ConnectionsFile
-           RECORD CONTAINS 80 CHARACTERS
-           BLOCK CONTAINS 0 RECORDS.
-
-      *>CR for connection request
-       01  CONNECTION-REC.
-           05 CR-REQUESTER                 PIC X(20).
-           05 CR-TARGET                    PIC X(20).
-           05 CR-STATUS                    PIC X(10).
-           05 CR-DATE                      PIC X(10).
-           05 CR-FILLER                    PIC X(20).
-
-       FD TempConnectionsFile
-           RECORD CONTAINS 80 CHARACTERS
-           BLOCK CONTAINS 0 RECORDS.
-       01  TEMP-CONN-REC.
-           05 TC-REQUESTER                 PIC X(20).
-           05 TC-TARGET                    PIC X(20).
-           05 TC-STATUS                    PIC X(10).
-           05 TC-DATE                      PIC X(10).
-           05 TC-FILLER                    PIC X(20).
 
        WORKING-STORAGE SECTION.
        77  FS-OUT                          PIC XX     VALUE SPACES.
@@ -123,8 +99,6 @@
        77  FS-PROFILE                      PIC XX     VALUE SPACES.
        77  FS-TMP                          PIC XX     VALUE SPACES.
        77  FS-IN                           PIC XX     VALUE SPACES.
-       77  FS-CONN                         PIC XX     VALUE SPACES.
-       77  FS-CONN-TMP                     PIC XX     VALUE SPACES.
 
        01  IN-EOF-FLAG                     PIC 9      VALUE 0.
            88  IN-AT-EOF                              VALUE 1.
@@ -136,8 +110,6 @@
        01  RAW-SEL                         PIC X(12)  VALUE SPACES.
        77  MAIN-SEL                        PIC 99     VALUE 0.
        77  NAV-SEL                         PIC 99     VALUE 0.
-       77  USER-SEL                        PIC 99     VALUE 0.
-
 
        01  U-IN                            PIC X(20)  VALUE SPACES.
        01  P-IN                            PIC X(20)  VALUE SPACES.
@@ -180,17 +152,19 @@
        01  SEARCH-NAME                     PIC X(120) VALUE SPACES.
        01  SEARCH-NAME-U                   PIC X(120) VALUE SPACES.
        01  FULLNAME-U                      PIC X(120) VALUE SPACES.
-
+       
        77  YEAR-LEN                        PIC 99     VALUE 0.
        77  YEAR-NUM                        PIC 9(4)   VALUE 0.
        01  YEAR-RAW                        PIC X(16)  VALUE SPACES.
 
-       *> Connection Request Variables
-       77  TARGET-USER                     PIC X(20)  VALUE SPACES.
-       77  CONN-FOUND                      PIC 9      VALUE 0.
-       01  CURRENT-USER-U                  PIC X(20)  VALUE SPACES.
-       01  TARGET-USER-U                   PIC X(20)  VALUE SPACES.
 
+       77  FS-REQ                         PIC XX     VALUE SPACES.
+       77  REQ-FOUND                      PIC 9      VALUE 0.
+       77  ANY-PENDING                    PIC 9      VALUE 0.
+       01  TARGET-USER                    PIC X(20)  VALUE SPACES.
+       01  TARGET-NAME                    PIC X(120) VALUE SPACES.
+       77  SUB-SEL                        PIC 99     VALUE 0.
+       
 
        *> Stable NEW buffer so READs never clobber inputs
        01  NEW-PROFILE.
@@ -211,14 +185,6 @@
               10 NP-EDU-SCHOOL             PIC X(30).
               10 NP-EDU-YEARS              PIC X(10).
 
-       *>   working storage for new connections (NC for new connection)
-       01  NEW-CONNECTION.
-           05 NC-REQUESTER                 PIC X(20).
-           05 NC-TARGET                    PIC X(20).
-           05 NC-STATUS                    PIC X(10).
-           05 NC-DATE                      PIC X(10).
-           05 NC-FILLER                    PIC X(20).
-
        PROCEDURE DIVISION.
        MAIN.
            PERFORM BOOT
@@ -227,24 +193,21 @@
            MOVE "Welcome to InCollege!" TO LINE-MSG
            PERFORM SAY
 
-           PERFORM UNTIL 1 = 2
-              IF LOGGED-IN
-                 PERFORM DASHBOARD
-              ELSE
-                 PERFORM SHOW-MAIN
-                 PERFORM READ-MAIN
-                 EVALUATE TRUE
-                    WHEN MAIN-SEL = 1
-                       PERFORM LOGIN-FLOW
-                    WHEN MAIN-SEL = 2
-                       PERFORM REGISTER-FLOW
-                    WHEN OTHER
-                       MOVE "Invalid option. Choose 1 or 2." TO LINE-MSG
-                       PERFORM SAY
-                 END-EVALUATE
-              END-IF
+           PERFORM UNTIL LOGGED-IN
+              PERFORM SHOW-MAIN
+              PERFORM READ-MAIN
+              EVALUATE TRUE
+                 WHEN MAIN-SEL = 1
+                    PERFORM LOGIN-FLOW
+                 WHEN MAIN-SEL = 2
+                    PERFORM REGISTER-FLOW
+                 WHEN OTHER
+                    MOVE "Invalid option. Choose 1 or 2." TO LINE-MSG
+                    PERFORM SAY
+              END-EVALUATE
            END-PERFORM
 
+           PERFORM DASHBOARD
            PERFORM SHUTDOWN
            STOP RUN.
 
@@ -275,12 +238,12 @@
               PERFORM HALT-PROGRAM
            END-IF
 
-           OPEN INPUT ConnectionsFile
-           IF FS-CONN = "35"
-               OPEN OUTPUT ConnectionsFile
-               CLOSE ConnectionsFile
-               MOVE SPACES TO FS-CONN
-               OPEN INPUT ConnectionsFile
+           OPEN INPUT  ReqFile
+           IF FS-REQ = "35"
+              OPEN OUTPUT ReqFile
+              CLOSE ReqFile
+              MOVE SPACES TO FS-REQ
+              OPEN INPUT ReqFile
            END-IF
            .
 
@@ -290,8 +253,7 @@
            CLOSE TempProfileFile
            CLOSE InFile
            CLOSE OutFile
-           CLOSE ConnectionsFile
-           CLOSE TempConnectionsFile
+           CLOSE ReqFile
            .
 
        *> ---------------- Utilities ----------------
@@ -379,30 +341,25 @@
 
        DASHBOARD.
            PERFORM UNTIL 1 = 2
-              MOVE "1. Create/Edit My Profile" TO LINE-MSG PERFORM SAY
-              MOVE "2. View My Profile"        TO LINE-MSG PERFORM SAY
-              MOVE "3. Find someone you know"  TO LINE-MSG PERFORM SAY
-              MOVE "4. Learn a New Skill"      TO LINE-MSG PERFORM SAY
-              MOVE "5. View Connection Requests" TO LINE-MSG PERFORM SAY
-              MOVE "6. Exit"                   TO LINE-MSG PERFORM SAY
-              MOVE "Enter your choice:"        TO LINE-MSG PERFORM SAY
+              MOVE "1. Create/Edit My Profile"            TO LINE-MSG PERFORM SAY
+              MOVE "2. View My Profile"                   TO LINE-MSG PERFORM SAY
+              MOVE "3. Find someone you know"             TO LINE-MSG PERFORM SAY
+              MOVE "4. View My Pending Connection Requests" TO LINE-MSG PERFORM SAY
+              MOVE "5. Learn a New Skill"                 TO LINE-MSG PERFORM SAY
+              MOVE "Enter your choice:"                   TO LINE-MSG PERFORM SAY
 
               PERFORM READ-NEXT
-
-              *> Ignore empty inputs instead of complaining
               IF FUNCTION LENGTH(FUNCTION TRIM(LAST-LINE)) = 0
                  CONTINUE
               ELSE
                  MOVE FUNCTION NUMVAL(FUNCTION TRIM(LAST-LINE)) TO NAV-SEL
-
                  EVALUATE TRUE
                     WHEN NAV-SEL = 1  PERFORM CREATE-EDIT-FLOW
                     WHEN NAV-SEL = 2  PERFORM VIEW-PROFILE
                     WHEN NAV-SEL = 3  PERFORM FIND-SOMEONE
-                    WHEN NAV-SEL = 4  PERFORM SKILL-MENU
-                    WHEN NAV-SEL = 5  PERFORM CONNECTION-REQUESTS
-                    WHEN NAV-SEL = 6  PERFORM HALT-PROGRAM
-                    WHEN OTHER        MOVE "Please pick 1, 2, 3, 4, 5, or 6." TO LINE-MSG PERFORM SAY
+                    WHEN NAV-SEL = 4  PERFORM VIEW-PENDING-REQUESTS
+                    WHEN NAV-SEL = 5  PERFORM SKILL-MENU
+                    WHEN OTHER        MOVE "Please pick 1, 2, 3, 4, or 5." TO LINE-MSG PERFORM SAY
                  END-EVALUATE
               END-IF
            END-PERFORM
@@ -418,18 +375,129 @@
            END-STRING
            PERFORM SAY
            .
+       SEND-REQUEST.
+           *> Normalize current and target usernames
+           MOVE FUNCTION UPPER-CASE(FUNCTION TRIM(CURRENT-USER)) TO U-NORM
+           MOVE FUNCTION UPPER-CASE(FUNCTION TRIM(TARGET-USER))  TO P-NORM
 
-       ASK-FOR-USER-CONNECTION.
-           MOVE "Would you like to connect with this user?"             TO LINE-MSG PERFORM SAY
-           MOVE "1. Send Connection Request" TO LINE-MSG PERFORM SAY
-           MOVE "2. Back to Main Menu" TO LINE-MSG PERFORM SAY
-           MOVE "Enter your choice:"    TO LINE-MSG PERFORM SAY
+           IF FUNCTION LENGTH(FUNCTION TRIM(U-NORM)) = 0
+              MOVE "You must be logged in to send requests." TO LINE-MSG PERFORM SAY
+              EXIT PARAGRAPH
+           END-IF
+
+           IF U-NORM = P-NORM
+              MOVE "You cannot send a request to yourself." TO LINE-MSG PERFORM SAY
+              EXIT PARAGRAPH
+           END-IF
+
+           *> Duplicate pending check (you -> them)
+           MOVE 0 TO REQ-FOUND
+           OPEN INPUT ReqFile
+           PERFORM UNTIL 1 = 2
+              READ ReqFile AT END EXIT PERFORM END-READ
+              IF FUNCTION TRIM(REQ-SENDER) = U-NORM
+                 AND FUNCTION TRIM(REQ-RECIP)  = P-NORM
+                 MOVE 1 TO REQ-FOUND
+                 EXIT PERFORM
+              END-IF
+           END-PERFORM
+           CLOSE ReqFile
+
+           IF REQ-FOUND = 1
+              MOVE "You have already sent this user a connection request." TO LINE-MSG PERFORM SAY
+              EXIT PARAGRAPH
+           END-IF
+
+           *> Inverse pending check (them -> you)
+           MOVE 0 TO REQ-FOUND
+           OPEN INPUT ReqFile
+           PERFORM UNTIL 1 = 2
+              READ ReqFile AT END EXIT PERFORM END-READ
+              IF FUNCTION TRIM(REQ-SENDER) = P-NORM
+                 AND FUNCTION TRIM(REQ-RECIP)  = U-NORM
+                 MOVE 1 TO REQ-FOUND
+                 EXIT PERFORM
+              END-IF
+           END-PERFORM
+           CLOSE ReqFile
+
+           IF REQ-FOUND = 1
+              MOVE "This user has already sent you a connection request." TO LINE-MSG PERFORM SAY
+              EXIT PARAGRAPH
+           END-IF
+
+           *> Append new pending request
+           CLOSE ReqFile
+           OPEN EXTEND ReqFile
+              MOVE U-NORM TO REQ-SENDER
+              MOVE P-NORM TO REQ-RECIP
+              WRITE REQ-REC
+           CLOSE ReqFile
+           OPEN INPUT ReqFile
+
+           *> Confirmation
+           IF FUNCTION LENGTH(FUNCTION TRIM(TARGET-NAME)) > 0
+              MOVE SPACES TO LINE-MSG
+              STRING "Connection request sent to " FUNCTION TRIM(TARGET-NAME) "."
+                 INTO LINE-MSG
+              END-STRING
+           ELSE
+              MOVE SPACES TO LINE-MSG
+              STRING "Connection request sent to user " FUNCTION TRIM(TARGET-USER) "."
+                 INTO LINE-MSG
+              END-STRING
+           END-IF
+           PERFORM SAY
            .
+       VIEW-PENDING-REQUESTS.
+           MOVE "--- Pending Connection Requests ---" TO LINE-MSG PERFORM SAY
+           MOVE 0 TO ANY-PENDING
+           MOVE FUNCTION UPPER-CASE(FUNCTION TRIM(CURRENT-USER)) TO U-NORM
 
-       READ-ANSWER-FOR-CONNECTION.
-           PERFORM READ-NEXT
-           MOVE LAST-LINE TO RAW-SEL
-           MOVE FUNCTION NUMVAL(FUNCTION TRIM(RAW-SEL)) TO USER-SEL
+           OPEN INPUT ReqFile
+           PERFORM UNTIL 1 = 2
+              READ ReqFile AT END EXIT PERFORM END-READ
+              IF FUNCTION TRIM(REQ-RECIP) = U-NORM
+                 MOVE 1 TO ANY-PENDING
+
+                 *> Try to resolve sender to full name
+                 MOVE SPACES TO FULL-NAME
+                 MOVE 0 TO PROFILE-FOUND
+
+                 CLOSE ProfileFile
+                 OPEN INPUT ProfileFile
+                 PERFORM UNTIL 1 = 2
+                    READ ProfileFile AT END EXIT PERFORM END-READ
+                    IF FUNCTION UPPER-CASE(FUNCTION TRIM(PR-USER))
+                       = FUNCTION TRIM(REQ-SENDER)
+                       MOVE 1 TO PROFILE-FOUND
+                       STRING FUNCTION TRIM(PR-FNAME) " " FUNCTION TRIM(PR-LNAME)
+                          INTO FULL-NAME
+                       END-STRING
+                       EXIT PERFORM
+                    END-IF
+                 END-PERFORM
+                 CLOSE ProfileFile
+
+                 IF PROFILE-FOUND = 1
+                    MOVE SPACES TO LINE-MSG
+                    STRING " - " FUNCTION TRIM(FULL-NAME) INTO LINE-MSG
+                    END-STRING
+                 ELSE
+                    MOVE SPACES TO LINE-MSG
+                    STRING " - " FUNCTION TRIM(REQ-SENDER) INTO LINE-MSG
+                    END-STRING
+                 END-IF
+                 PERFORM SAY
+              END-IF
+           END-PERFORM
+           CLOSE ReqFile
+
+           IF ANY-PENDING = 0
+              MOVE "You have no pending connection requests at this time." TO LINE-MSG PERFORM SAY
+           END-IF
+
+           MOVE "-----------------------------------" TO LINE-MSG PERFORM SAY
            .
 
        *> ---------------- Registration / Login ----------------
@@ -541,184 +609,6 @@
                  EXIT PERFORM
               END-IF
            END-PERFORM
-           .
-
-       *> ---------------- Profile Display (Stubs) ----------------
-       VIEW-PROFILE.
-           MOVE "Viewing your own profile is not yet implemented."
-             TO LINE-MSG PERFORM SAY
-             .
-
-       SKILL-MENU.
-           MOVE "Learning a new skill is not yet implemented."
-             TO LINE-MSG PERFORM SAY
-             .
-
-       CONNECTION-REQUESTS.
-           MOVE "Viewing connection requests is not yet implemented."
-             TO LINE-MSG PERFORM SAY
-             .
-
-       *> ---------------- Connection Search & Validation ----------------
-
-       FIND-SOMEONE.
-           MOVE "Enter the full name of the person you are looking for:"
-             TO LINE-MSG PERFORM SAY
-           PERFORM READ-NEXT
-           MOVE LAST-LINE TO SEARCH-NAME
-
-           MOVE 0 TO PROFILE-FOUND
-
-           *> Normalize search name
-           MOVE FUNCTION UPPER-CASE(FUNCTION TRIM(SEARCH-NAME))
-             TO SEARCH-NAME-U
-
-           CLOSE ProfileFile
-           OPEN INPUT ProfileFile
-           PERFORM UNTIL 1 = 2
-              READ ProfileFile AT END EXIT PERFORM END-READ
-              MOVE SPACES TO FULLNAME-U
-              STRING FUNCTION UPPER-CASE(FUNCTION TRIM(PR-FNAME))
-                     " " FUNCTION UPPER-CASE(FUNCTION TRIM(PR-LNAME))
-                     INTO FULLNAME-U
-              END-STRING
-
-              IF FULLNAME-U = SEARCH-NAME-U
-                 MOVE 1 TO PROFILE-FOUND
-                 PERFORM DISPLAY-PR-DETAILS
-                 EXIT PERFORM
-              END-IF
-           END-PERFORM
-           CLOSE ProfileFile
-           OPEN INPUT ProfileFile  *> Reopen for Dashboard continuation
-
-           IF PROFILE-FOUND = 1
-              *> Target user found: Store username and name for request
-              MOVE FUNCTION TRIM(PR-USER) TO TARGET-USER
-              MOVE FUNCTION TRIM(PR-FNAME) TO NP-FNAME
-              MOVE FUNCTION TRIM(PR-LNAME) TO NP-LNAME
-              PERFORM CONNECTION-MENU-FLOW
-           ELSE
-              MOVE "User not found." TO LINE-MSG PERFORM SAY
-           END-IF
-           .
-
-       DISPLAY-PR-DETAILS.
-           MOVE "--- Found User Profile ---" TO LINE-MSG PERFORM SAY
-
-           MOVE SPACES TO LINE-MSG
-           STRING "Name: " FUNCTION TRIM(PR-FNAME) " "
-                  FUNCTION TRIM(PR-LNAME) INTO LINE-MSG
-           END-STRING
-           PERFORM SAY
-
-           MOVE SPACES TO LINE-MSG
-           STRING "University: " FUNCTION TRIM(PR-SCHOOL) INTO LINE-MSG
-           END-STRING
-           PERFORM SAY
-
-           MOVE SPACES TO LINE-MSG
-           STRING "Major: " FUNCTION TRIM(PR-MAJOR) INTO LINE-MSG
-           END-STRING
-           PERFORM SAY
-
-           MOVE SPACES TO LINE-MSG
-           STRING "Graduation Year: " FUNCTION TRIM(PR-GRADYR) INTO LINE-MSG
-           END-STRING
-           PERFORM SAY
-
-           MOVE "--------------------------" TO LINE-MSG PERFORM SAY
-           .
-
-       CONNECTION-MENU-FLOW.
-           PERFORM ASK-FOR-USER-CONNECTION
-           PERFORM READ-ANSWER-FOR-CONNECTION
-
-           IF USER-SEL = 1
-              PERFORM VALIDATE-AND-SEND-REQUEST
-           ELSE IF USER-SEL = 2
-              CONTINUE
-           ELSE
-              MOVE "Invalid option." TO LINE-MSG PERFORM SAY
-           END-IF
-           .
-
-       VALIDATE-AND-SEND-REQUEST.
-           *> 1. Normalize usernames for case-insensitive comparison
-           MOVE FUNCTION UPPER-CASE(FUNCTION TRIM(CURRENT-USER))
-             TO CURRENT-USER-U
-           MOVE FUNCTION UPPER-CASE(FUNCTION TRIM(TARGET-USER))
-             TO TARGET-USER-U
-
-           *> Check 1: Sending to self (THE REQUIRED LOGIC)
-           IF CURRENT-USER-U = TARGET-USER-U
-              MOVE "You cannot send a connection request to yourself."
-                TO LINE-MSG PERFORM SAY
-              EXIT PARAGRAPH
-           END-IF
-
-           *> Check 2 & 3: Already Connected/Pending Request
-           MOVE 0 TO CONN-FOUND
-           CLOSE ConnectionsFile
-           OPEN INPUT ConnectionsFile
-
-           PERFORM UNTIL 1 = 2
-              READ ConnectionsFile AT END EXIT PERFORM END-READ
-
-              *> Check 2: Already sent (You -> Them)
-              IF FUNCTION UPPER-CASE(FUNCTION TRIM(CR-REQUESTER))
-                 = CURRENT-USER-U
-                 AND FUNCTION UPPER-CASE(FUNCTION TRIM(CR-TARGET))
-                 = TARGET-USER-U
-                 MOVE 1 TO CONN-FOUND
-                 MOVE "You have already sent this user a connection request."
-                   TO LINE-MSG PERFORM SAY
-                 EXIT PERFORM
-              END-IF
-
-              *> Check 3: Already received (Them -> You)
-              IF FUNCTION UPPER-CASE(FUNCTION TRIM(CR-REQUESTER))
-                 = TARGET-USER-U
-                 AND FUNCTION UPPER-CASE(FUNCTION TRIM(CR-TARGET))
-                 = CURRENT-USER-U
-                 MOVE 1 TO CONN-FOUND
-                 MOVE "This user has already sent you a connection request."
-                   TO LINE-MSG PERFORM SAY
-                 EXIT PERFORM
-              END-IF
-
-           END-PERFORM
-           CLOSE ConnectionsFile
-           OPEN INPUT ConnectionsFile *> Reopen for Dashboard continuation
-
-           IF CONN-FOUND = 1
-              EXIT PARAGRAPH
-           END-IF
-
-           *> If all checks pass, record the new request
-           PERFORM WRITE-NEW-CONNECTION
-           .
-
-       WRITE-NEW-CONNECTION.
-           MOVE FUNCTION CURRENT-DATE (1:8) TO NC-DATE
-
-           MOVE CURRENT-USER-U TO CR-REQUESTER
-           MOVE TARGET-USER-U  TO CR-TARGET
-           MOVE "PENDING"     TO CR-STATUS
-           MOVE NC-DATE        TO CR-DATE
-
-           CLOSE ConnectionsFile
-           OPEN EXTEND ConnectionsFile
-              WRITE CONNECTION-REC
-           CLOSE ConnectionsFile
-           OPEN INPUT ConnectionsFile
-
-           MOVE SPACES TO LINE-MSG
-           STRING "Connection request sent to "
-              FUNCTION TRIM(NP-FNAME) " " FUNCTION TRIM(NP-LNAME) "."
-              INTO LINE-MSG
-           END-STRING
-           PERFORM SAY
            .
 
        *> ---------------- Create/Edit (UPSERT with NEW buffer) ----------------
@@ -1001,10 +891,10 @@
               MOVE TP-EXP-TITLE(I)   TO PR-EXP-TITLE(I)
               MOVE TP-EXP-COMPANY(I) TO PR-EXP-COMPANY(I)
               MOVE TP-EXP-DATES(I)   TO PR-EXP-DATES(I)
-              MOVE TP-EXP-DESC(I)    TO TP-EXP-DESC(I)
+              MOVE TP-EXP-DESC(I)    TO PR-EXP-DESC(I)
               MOVE TP-EDU-DEGREE(I)  TO PR-EDU-DEGREE(I)
-              MOVE TP-EDU-SCHOOL(I)  TO TP-EDU-SCHOOL(I)
-              MOVE TP-EDU-YEARS(I)   TO TP-EDU-YEARS(I)
+              MOVE TP-EDU-SCHOOL(I)  TO PR-EDU-SCHOOL(I)
+              MOVE TP-EDU-YEARS(I)   TO PR-EDU-YEARS(I)
            END-PERFORM
            .
 
@@ -1043,3 +933,173 @@
            PERFORM SAY
            PERFORM READ-NEXT
            .
+              DISPLAY-PR.
+           MOVE SPACES TO FULL-NAME
+           STRING "Name: " DELIMITED BY SIZE
+                  FUNCTION TRIM(PR-FNAME) DELIMITED BY SIZE
+                  " " DELIMITED BY SIZE
+                  FUNCTION TRIM(PR-LNAME) DELIMITED BY SIZE
+                  INTO FULL-NAME
+           END-STRING
+           MOVE FULL-NAME TO LINE-MSG PERFORM SAY
+
+           MOVE "University:"   TO PROMPT-TEXT
+           MOVE FUNCTION TRIM(PR-SCHOOL) TO LAST-LINE
+           PERFORM SAY-LABEL-VALUE
+
+           MOVE "Major:"        TO PROMPT-TEXT
+           MOVE FUNCTION TRIM(PR-MAJOR)  TO LAST-LINE
+           PERFORM SAY-LABEL-VALUE
+
+           MOVE "Graduation Year:" TO PROMPT-TEXT
+           MOVE FUNCTION TRIM(PR-GRADYR) TO LAST-LINE
+           PERFORM SAY-LABEL-VALUE
+
+           IF PR-ABOUT NOT = SPACES
+              MOVE "About Me:"  TO PROMPT-TEXT
+              MOVE FUNCTION TRIM(PR-ABOUT) TO LAST-LINE
+              PERFORM SAY-LABEL-VALUE
+           END-IF
+
+           MOVE "Experience:" TO LINE-MSG PERFORM SAY
+           MOVE 0 TO I-DISPLAY
+           PERFORM VARYING I FROM 1 BY 1 UNTIL I > 3
+              IF PR-EXP-TITLE(I) NOT = SPACES
+                 MOVE "  Title:" TO PROMPT-TEXT
+                 MOVE FUNCTION TRIM(PR-EXP-TITLE(I)) TO LAST-LINE
+                 PERFORM SAY-LABEL-VALUE
+
+                 MOVE "  Company:" TO PROMPT-TEXT
+                 MOVE FUNCTION TRIM(PR-EXP-COMPANY(I)) TO LAST-LINE
+                 PERFORM SAY-LABEL-VALUE
+
+                 MOVE "  Dates:" TO PROMPT-TEXT
+                 MOVE FUNCTION TRIM(PR-EXP-DATES(I)) TO LAST-LINE
+                 PERFORM SAY-LABEL-VALUE
+
+                 IF PR-EXP-DESC(I) NOT = SPACES
+                    MOVE "  Description:" TO PROMPT-TEXT
+                    MOVE FUNCTION TRIM(PR-EXP-DESC(I)) TO LAST-LINE
+                    PERFORM SAY-LABEL-VALUE
+                 END-IF
+                 ADD 1 TO I-DISPLAY
+              END-IF
+           END-PERFORM
+           IF I-DISPLAY = 0
+              MOVE "  None" TO LINE-MSG PERFORM SAY
+           END-IF
+
+           MOVE "Education:" TO LINE-MSG PERFORM SAY
+           MOVE 0 TO E-DISPLAY
+           PERFORM VARYING I FROM 1 BY 1 UNTIL I > 3
+              IF PR-EDU-DEGREE(I) NOT = SPACES
+                 MOVE "  Degree:" TO PROMPT-TEXT
+                 MOVE FUNCTION TRIM(PR-EDU-DEGREE(I)) TO LAST-LINE
+                 PERFORM SAY-LABEL-VALUE
+
+                 MOVE "  University:" TO PROMPT-TEXT
+                 MOVE FUNCTION TRIM(PR-EDU-SCHOOL(I)) TO LAST-LINE
+                 PERFORM SAY-LABEL-VALUE
+
+                 MOVE "  Years:" TO PROMPT-TEXT
+                 MOVE FUNCTION TRIM(PR-EDU-YEARS(I)) TO LAST-LINE
+                 PERFORM SAY-LABEL-VALUE
+                 ADD 1 TO E-DISPLAY
+              END-IF
+           END-PERFORM
+           IF E-DISPLAY = 0
+              MOVE "  None" TO LINE-MSG PERFORM SAY
+           END-IF
+           .
+
+       *> ---------------- View Profile (one line per label) ----------------
+              VIEW-PROFILE.
+           MOVE 0 TO PROFILE-FOUND
+           MOVE "--- Your Profile ---" TO LINE-MSG PERFORM SAY
+
+           CLOSE ProfileFile
+           OPEN INPUT ProfileFile
+
+           PERFORM UNTIL 1 = 2
+              READ ProfileFile AT END EXIT PERFORM END-READ
+              IF FUNCTION UPPER-CASE(FUNCTION TRIM(PR-USER))
+                 = FUNCTION UPPER-CASE(FUNCTION TRIM(CURRENT-USER))
+                 MOVE 1 TO PROFILE-FOUND
+                 PERFORM DISPLAY-PR
+                 EXIT PERFORM
+              END-IF
+           END-PERFORM
+           CLOSE ProfileFile
+
+           IF PROFILE-FOUND = 0
+              MOVE "No profile found for this user yet." TO LINE-MSG PERFORM SAY
+           END-IF
+           .
+
+              FIND-SOMEONE.
+           MOVE "Enter the full name of the person you are looking for:" TO LINE-MSG
+           PERFORM SAY
+           PERFORM READ-NEXT
+           MOVE FUNCTION TRIM(LAST-LINE) TO SEARCH-NAME
+           IF FUNCTION LENGTH(FUNCTION TRIM(SEARCH-NAME)) = 0
+              EXIT PARAGRAPH
+           END-IF
+           MOVE FUNCTION UPPER-CASE(FUNCTION TRIM(SEARCH-NAME)) TO SEARCH-NAME-U
+
+           MOVE 0 TO PROFILE-FOUND
+           CLOSE ProfileFile
+           OPEN INPUT ProfileFile
+
+           PERFORM UNTIL 1 = 2
+              READ ProfileFile AT END EXIT PERFORM END-READ
+
+              MOVE SPACES TO FULLNAME-U
+              STRING FUNCTION UPPER-CASE(FUNCTION TRIM(PR-FNAME))
+                     " "
+                     FUNCTION UPPER-CASE(FUNCTION TRIM(PR-LNAME))
+                     INTO FULLNAME-U
+              END-STRING
+
+              IF FULLNAME-U = SEARCH-NAME-U
+                 MOVE "--- Found User Profile ---" TO LINE-MSG PERFORM SAY
+                 PERFORM DISPLAY-PR
+                 *> Offer to send a request to this PR-USER
+                 MOVE SPACES TO TARGET-USER
+                 MOVE PR-USER TO TARGET-USER
+
+                 MOVE SPACES TO TARGET-NAME
+                 STRING FUNCTION TRIM(PR-FNAME) " " FUNCTION TRIM(PR-LNAME)
+                        INTO TARGET-NAME
+                 END-STRING
+
+                 MOVE "-------------------------" TO LINE-MSG PERFORM SAY
+                 MOVE "1. Send Connection Request" TO LINE-MSG PERFORM SAY
+                 MOVE "2. Back to Main Menu"       TO LINE-MSG PERFORM SAY
+                 MOVE "Enter your choice:"         TO LINE-MSG PERFORM SAY
+                 PERFORM READ-NEXT
+                 MOVE FUNCTION NUMVAL(FUNCTION TRIM(LAST-LINE)) TO SUB-SEL
+
+                 IF SUB-SEL = 1
+                    PERFORM SEND-REQUEST
+                 END-IF
+
+                 MOVE 1 TO PROFILE-FOUND
+                 EXIT PERFORM
+              END-IF
+           END-PERFORM
+
+           CLOSE ProfileFile
+
+           IF PROFILE-FOUND = 0
+              MOVE "No one by that name could be found." TO LINE-MSG PERFORM SAY
+           END-IF
+           .
+
+       *> ---------------- Skills ----------------
+       SKILL-MENU.
+           PERFORM UNTIL 1 = 2
+              MOVE "Learn a New Skill (coming soon)" TO LINE-MSG PERFORM SAY
+              EXIT PARAGRAPH
+           END-PERFORM
+           .
+           
