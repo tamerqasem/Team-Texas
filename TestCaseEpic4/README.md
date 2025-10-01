@@ -60,11 +60,6 @@ This directory contains test cases for Epic 4, which implements connection reque
 4. **Empty Search**: Exits search without action
 5. **Invalid Menu Choice**: Returns "Please pick 1, 2, 3, 4, or 5"
 
-## Running Tests
-1. Ensure COBOL compiler (cobc) is installed and in PATH
-2. Compile: `cobc -x InCollege2.cob`
-3. Run: `./InCollege2 < TestCaseEpic4/Valid Cases/Inputs/[testfile].txt`
-4. Compare output with expected output in corresponding Outputs directory
 
 ## Notes
 - All usernames are case-insensitive (converted to uppercase)
