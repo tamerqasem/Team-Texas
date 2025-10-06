@@ -22,13 +22,17 @@
                ORGANIZATION IS SEQUENTIAL
                FILE STATUS  IS FS-PROFILE.
 
+           SELECT ConnectionsFile ASSIGN TO "data/InCollege-Connections.dat"
+               ORGANIZATION IS SEQUENTIAL
+               FILE STATUS  IS FS-PROFILE.
+
            SELECT TempProfileFile ASSIGN TO "data/InCollege-Profiles.tmp"
                ORGANIZATION IS SEQUENTIAL
                FILE STATUS  IS FS-TMP.
            SELECT ReqFile         ASSIGN TO "data/InCollege-Requests.dat"
                ORGANIZATION IS LINE SEQUENTIAL
                FILE STATUS  IS FS-REQ.
-          
+
        DATA DIVISION.
        FILE SECTION.
 
@@ -63,6 +67,12 @@
               10 PR-EDU-DEGREE             PIC X(30).
               10 PR-EDU-SCHOOL             PIC X(30).
               10 PR-EDU-YEARS              PIC X(10).
+
+       FD ConnectionsFile.
+       01  CONNECTIONS-REC.
+           05 CR-USER                      PIC X(20).
+           01 CR-CONNEC-LIST.
+               05 CR-CONNEC-NAME           PIC X(20).
 
        FD  TempProfileFile
            RECORD CONTAINS 824 CHARACTERS
@@ -152,7 +162,7 @@
        01  SEARCH-NAME                     PIC X(120) VALUE SPACES.
        01  SEARCH-NAME-U                   PIC X(120) VALUE SPACES.
        01  FULLNAME-U                      PIC X(120) VALUE SPACES.
-       
+
        77  YEAR-LEN                        PIC 99     VALUE 0.
        77  YEAR-NUM                        PIC 9(4)   VALUE 0.
        01  YEAR-RAW                        PIC X(16)  VALUE SPACES.
@@ -164,7 +174,7 @@
        01  TARGET-USER                    PIC X(20)  VALUE SPACES.
        01  TARGET-NAME                    PIC X(120) VALUE SPACES.
        77  SUB-SEL                        PIC 99     VALUE 0.
-       
+
 
        *> Stable NEW buffer so READs never clobber inputs
        01  NEW-PROFILE.
@@ -1102,4 +1112,3 @@
               EXIT PARAGRAPH
            END-PERFORM
            .
-           
