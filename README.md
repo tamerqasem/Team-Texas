@@ -1,6 +1,6 @@
 # InCollege
-> [!WARN]
-> Please don't change the README for a specific EPIC
+> [!WARNING]
+> Don't change this `README.md` for describing a specific **Epic** or **Assignment**.
 
 ## How to compile
 Open the project in vscode, and press the docker environment by clicking on the "Reopen in Container" pop-up.
