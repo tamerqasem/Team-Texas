@@ -1,0 +1,7 @@
+1
+testuser
+Abcdef1!
+5
+3
+Alex Kim
+98
