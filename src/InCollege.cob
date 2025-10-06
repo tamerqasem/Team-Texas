@@ -174,6 +174,7 @@
        01  TARGET-USER                    PIC X(20)  VALUE SPACES.
        01  TARGET-NAME                    PIC X(120) VALUE SPACES.
        77  SUB-SEL                        PIC 99     VALUE 0.
+       77  CONNEC-SEL                     PIC 99     VALUE 0.
 
 
        *> Stable NEW buffer so READs never clobber inputs
@@ -461,14 +462,18 @@
            .
        VIEW-PENDING-REQUESTS.
            MOVE "--- Pending Connection Requests ---" TO LINE-MSG PERFORM SAY
+           MOVE "Select a request to accept/reject" TO LINE-MSG PERFORM SAY
            MOVE 0 TO ANY-PENDING
+           MOVE 0 TO CONNEC-SEL
            MOVE FUNCTION UPPER-CASE(FUNCTION TRIM(CURRENT-USER)) TO U-NORM
 
            OPEN INPUT ReqFile
            PERFORM UNTIL 1 = 2
+              *> Loop through Request File and find matching users.
               READ ReqFile AT END EXIT PERFORM END-READ
               IF FUNCTION TRIM(REQ-RECIP) = U-NORM
                  MOVE 1 TO ANY-PENDING
+                 ADD 1 TO CONNEC-SEL
 
                  *> Try to resolve sender to full name
                  MOVE SPACES TO FULL-NAME
@@ -478,8 +483,7 @@
                  OPEN INPUT ProfileFile
                  PERFORM UNTIL 1 = 2
                     READ ProfileFile AT END EXIT PERFORM END-READ
-                    IF FUNCTION UPPER-CASE(FUNCTION TRIM(PR-USER))
-                       = FUNCTION TRIM(REQ-SENDER)
+                    IF FUNCTION UPPER-CASE(FUNCTION TRIM(PR-USER)) = FUNCTION TRIM(REQ-SENDER)
                        MOVE 1 TO PROFILE-FOUND
                        STRING FUNCTION TRIM(PR-FNAME) " " FUNCTION TRIM(PR-LNAME)
                           INTO FULL-NAME
@@ -489,19 +493,33 @@
                  END-PERFORM
                  CLOSE ProfileFile
 
+                 *> Change the name we print depending on if the user has created a profile yet.
                  IF PROFILE-FOUND = 1
                     MOVE SPACES TO LINE-MSG
-                    STRING " - " FUNCTION TRIM(FULL-NAME) INTO LINE-MSG
+                    STRING " " CONNEC-SEL ") " FUNCTION TRIM(FULL-NAME) INTO LINE-MSG
                     END-STRING
                  ELSE
                     MOVE SPACES TO LINE-MSG
-                    STRING " - " FUNCTION TRIM(REQ-SENDER) INTO LINE-MSG
+                    STRING " " CONNEC-SEL ") " FUNCTION TRIM(REQ-SENDER) INTO LINE-MSG
                     END-STRING
                  END-IF
+
+
                  PERFORM SAY
               END-IF
            END-PERFORM
            CLOSE ReqFile
+
+           MOVE " 00) Return to Home Page" TO LINE-MSG PERFORM SAY
+
+           PERFORM READ-NEXT
+           IF FUNCTION LENGTH(FUNCTION TRIM(LAST-LINE)) = 0
+               CONTINUE
+           ELSE
+               MOVE FUNCTION NUMVAL(FUNCTION TRIM(LAST-LINE)) TO NAV-SEL
+               MOVE "" TO LINE-MSG STRING "SELECTED " NAV-SEL INTO LINE-MSG PERFORM SAY
+
+           END-IF
 
            IF ANY-PENDING = 0
               MOVE "You have no pending connection requests at this time." TO LINE-MSG PERFORM SAY
@@ -509,6 +527,13 @@
 
            MOVE "-----------------------------------" TO LINE-MSG PERFORM SAY
            .
+      *> ACCEPT-CONNECTION-REQUEST.
+        *> Remove user from the pending request table, and add them to the connections table (doubly).
+
+      *> .
+      *> REJECT-CONNECTION-REQUEST.
+        *> Remove user from the pending requests table
+      *> .
 
        *> ---------------- Registration / Login ----------------
        REGISTER-FLOW.

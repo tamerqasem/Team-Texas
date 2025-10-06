@@ -13,7 +13,10 @@ Welcome, alice!
 5. Learn a New Skill
 Enter your choice:
 --- Pending Connection Requests ---
- - James Jamerson
+Select a request to accept/reject
+ 01) James Jamerson
+ 00) Return to Home Page
+SELECTED 01
 -----------------------------------
 1. Create/Edit My Profile
 2. View My Profile
