@@ -11,5 +11,10 @@ cobc src/InCollege.cob -o bin/InCollege -x -free
 ./bin/InCollege
 ```
 
+Or to do it all in one command:
+```bash
+cobc src/InCollege.cob -o bin/InCollege -x -free && ./bin/InCollege
+```
+
 Make sure to put all of your test cases somewhere in the `assignments/Epic [#]/` directory after writing them.
 Anything in the `bin/` directory won't be pushed to the repository because of the `.gitignore` setup that currently exists.
