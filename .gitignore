@@ -1,8 +1,19 @@
 # Binaries
-# InCollege
-# bin/
+InCollege
+bin/
 
 # IBM Z Open Editor config files
-# zapp.yaml
-
+zapp.yaml
 cobalt-env/
+
+# Editor-specific files
+.vscode/
+.idea/
+
+# Operating System files
+.DS_Store
+Thumbs.db
+
+# Logs and temporary files
+*.log
+*.tmp
