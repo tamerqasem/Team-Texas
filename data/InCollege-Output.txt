@@ -13,16 +13,26 @@ Welcome, alice!
 5. Learn a New Skill
 Enter your choice:
 --- Pending Connection Requests ---
-Select a request to Accept/Reject
- 01. James Jamerson
+Select a user to Accept/Reject:
+ [ No requests found ]
  00. Return to Home Page
- You selected (01): JAMES
-   01. Accept 'JAMES'
-   02. Reject 'JAMES'
-   00. Return to Home Page
-THIS IS THE ACCEPT-CONNECTION-REQUEST SECTION
-Retrieved Name: 'JAMES'.
+Invalid Input. Returning Home.
 -----------------------------------
+1. Create/Edit My Profile
+2. View My Profile
+3. Find someone you know
+4. View My Pending Connection Requests
+5. Learn a New Skill
+Enter your choice:
+--- Your Profile ---
+Name: Alice Alicer
+University: University of Alice
+Major: Aliceoligy
+Graduation Year: 1997
+Experience:
+  None
+Education:
+  None
 1. Create/Edit My Profile
 2. View My Profile
 3. Find someone you know

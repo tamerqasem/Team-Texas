@@ -22,16 +22,21 @@
                ORGANIZATION IS SEQUENTIAL
                FILE STATUS  IS FS-PROFILE.
 
-           SELECT ConnectionsFile ASSIGN TO "data/InCollege-Connections.dat"
-               ORGANIZATION IS SEQUENTIAL
-               FILE STATUS  IS FS-PROFILE.
-
            SELECT TempProfileFile ASSIGN TO "data/InCollege-Profiles.tmp"
                ORGANIZATION IS SEQUENTIAL
                FILE STATUS  IS FS-TMP.
            SELECT ReqFile         ASSIGN TO "data/InCollege-Requests.dat"
                ORGANIZATION IS LINE SEQUENTIAL
                FILE STATUS  IS FS-REQ.
+
+           SELECT TempReqFile     ASSIGN TO "data/InCollege-Requests.dat"
+               ORGANIZATION IS LINE SEQUENTIAL
+               FILE STATUS  IS FS-REQ.
+
+           SELECT ConnectionsFile ASSIGN TO "data/InCollege-Connections.dat"
+               ORGANIZATION IS SEQUENTIAL
+               FILE STATUS  IS FS-CONNEC.
+
 
        DATA DIVISION.
        FILE SECTION.
@@ -101,6 +106,11 @@
        01  REQ-REC.
            05 REQ-SENDER                  PIC X(20).   *> UPPER-CASE username
            05 REQ-RECIP                   PIC X(20).   *> UPPER-CASE username
+              FD  TempReqFile.
+
+       01  TEMP-REQ-REC.
+           05 TREQ-SENDER                 PIC X(20).
+           05 TREQ-RECIP                  PIC X(20).
 
 
        WORKING-STORAGE SECTION.
@@ -109,6 +119,10 @@
        77  FS-PROFILE                      PIC XX     VALUE SPACES.
        77  FS-TMP                          PIC XX     VALUE SPACES.
        77  FS-IN                           PIC XX     VALUE SPACES.
+
+       77  FS-REQ                          PIC XX     VALUE SPACES.
+
+       77  FS-CONNEC                       PIC XX     VALUE SPACES.
 
        01  IN-EOF-FLAG                     PIC 9      VALUE 0.
            88  IN-AT-EOF                              VALUE 1.
@@ -126,6 +140,7 @@
 
        01  U-NORM                          PIC X(20)  VALUE SPACES.
        01  P-NORM                          PIC X(20)  VALUE SPACES.
+       01  C-NORM                          PIC X(20)  VALUE SPACES.
 
        01  GRAD-YR-STR                     PIC X(4)   VALUE SPACES.
        77  YEAR-VALID                      PIC 9      VALUE 0.
@@ -168,14 +183,10 @@
        01  YEAR-RAW                        PIC X(16)  VALUE SPACES.
 
 
-       77  FS-REQ                         PIC XX     VALUE SPACES.
        77  REQ-FOUND                      PIC 9      VALUE 0.
-       77  ANY-PENDING                    PIC 9      VALUE 0.
        01  TARGET-USER                    PIC X(20)  VALUE SPACES.
        01  TARGET-NAME                    PIC X(120) VALUE SPACES.
        77  SUB-SEL                        PIC 99     VALUE 0.
-
-
        77  CONNEC-SEL                     PIC 99     VALUE 0.
        01  CONNEC-NAME                    PIC X(20)  VALUE SPACES.
        01  CONNEC-LIST-NAMES.
@@ -261,6 +272,14 @@
               MOVE SPACES TO FS-REQ
               OPEN INPUT ReqFile
            END-IF
+
+           OPEN INPUT  ConnectionsFile
+           IF FS-CONNEC = "35"
+              OPEN OUTPUT ConnectionsFile
+              CLOSE ConnectionsFile
+              MOVE SPACES TO FS-CONNEC
+              OPEN INPUT ConnectionsFile
+           END-IF
            .
 
        SHUTDOWN.
@@ -270,6 +289,7 @@
            CLOSE InFile
            CLOSE OutFile
            CLOSE ReqFile
+           CLOSE ConnectionsFile
            .
 
        *> ---------------- Utilities ----------------
@@ -467,8 +487,7 @@
            .
        VIEW-PENDING-REQUESTS.
            MOVE "--- Pending Connection Requests ---" TO LINE-MSG PERFORM SAY
-           MOVE "Select a request to Accept/Reject" TO LINE-MSG PERFORM SAY
-           MOVE 0 TO ANY-PENDING
+           MOVE "Select a user to Accept/Reject:" TO LINE-MSG PERFORM SAY
            MOVE 0 TO CONNEC-SEL
            MOVE FUNCTION UPPER-CASE(FUNCTION TRIM(CURRENT-USER)) TO U-NORM
 
@@ -478,7 +497,6 @@
               *> Loop through Request File and find matching users.
               READ ReqFile AT END EXIT PERFORM END-READ
               IF FUNCTION TRIM(REQ-RECIP) = U-NORM
-                 MOVE 1 TO ANY-PENDING
                  ADD 1 TO CONNEC-SEL *> essentially just `i++`
 
 
@@ -521,6 +539,9 @@
            END-PERFORM
            CLOSE ReqFile
 
+           IF CONNEC-SEL = 0
+               MOVE " [ No requests found ]" TO LINE-MSG PERFORM SAY
+           END-IF
            MOVE " 00. Return to Home Page" TO LINE-MSG PERFORM SAY
 
            *> User Takes selection
@@ -561,18 +582,14 @@
                            WHEN NAV-SEL = 0
                                CONTINUE
                            WHEN OTHER
-                               MOVE "Invalid Input" TO LINE-MSG PERFORM SAY
+                               MOVE "Invalid Input. Returning Home." TO LINE-MSG PERFORM SAY
                        END-EVALUATE
                    END-IF
 
                ELSE
-                   MOVE "Invalid Input" TO LINE-MSG PERFORM SAY
+                   MOVE "Invalid Input. Returning Home." TO LINE-MSG PERFORM SAY
                END-IF
 
-           END-IF
-
-           IF ANY-PENDING = 0
-              MOVE "You have no pending connection requests at this time." TO LINE-MSG PERFORM SAY
            END-IF
 
            MOVE "-----------------------------------" TO LINE-MSG PERFORM SAY
@@ -585,12 +602,57 @@
            STRING "Retrieved Name: '" FUNCTION TRIM(CONNEC-NAME) "'." INTO LINE-MSG PERFORM SAY
        .
 
-       *> Takes `CONNEC-NAME` as string input
        REJECT-CONNECTION-REQUEST.
-        *> Remove user from the pending requests table
-           MOVE "THIS IS THE REJECT-CONNECTION-REQUEST SECTION" TO LINE-MSG PERFORM SAY
+           *> Remove user from the pending requests table by rewriting the file
+           *> without the rejected record.
+
+           *> Normalize the names once for efficient comparison inside the loop.
+           MOVE FUNCTION UPPER-CASE(FUNCTION TRIM(CURRENT-USER)) TO U-NORM.
+           MOVE FUNCTION UPPER-CASE(FUNCTION TRIM(CONNEC-NAME)) TO C-NORM.
+
+           *> Open original file for reading and temp file for writing.
+           OPEN INPUT ReqFile.
+           OPEN OUTPUT TempReqFile.
+
+           PERFORM UNTIL 1 = 2
+               READ ReqFile
+                   AT END EXIT PERFORM
+               END-READ
+
+               *> Check if the current record is the one to be rejected.
+               IF (FUNCTION TRIM(REQ-SENDER) = FUNCTION TRIM(C-NORM)) AND
+                  (FUNCTION TRIM(REQ-RECIP)  = FUNCTION TRIM(U-NORM))
+               *> This is the record to reject, so do nothing.
+                   CONTINUE
+               ELSE
+                   *> This is a record to keep, so write it to the temp file.
+                   WRITE TEMP-REQ-REC FROM REQ-REC
+               END-IF
+           END-PERFORM.
+
+           *> Close both files to save changes.
+           CLOSE ReqFile.
+           CLOSE TempReqFile.
+
+           *> Now, overwrite the original ReqFile with the contents of the
+           *> filtered TempReqFile.
+           OPEN OUTPUT ReqFile.
+           OPEN INPUT TempReqFile.
+
+           PERFORM UNTIL 1 = 2
+               READ TempReqFile
+                   AT END EXIT PERFORM
+               END-READ
+               WRITE REQ-REC FROM TEMP-REQ-REC
+           END-PERFORM.
+
+           CLOSE ReqFile.
+           CLOSE TempReqFile.
+
+           *> Provide feedback to the user.
            MOVE SPACES TO LINE-MSG
-           STRING "Retrieved Name: '" FUNCTION TRIM(CONNEC-NAME) "'." INTO LINE-MSG PERFORM SAY
+           STRING "Request from '" FUNCTION TRIM(CONNEC-NAME) "' has been rejected." INTO LINE-MSG
+           PERFORM SAY
        .
 
        *> ---------------- Registration / Login ----------------
