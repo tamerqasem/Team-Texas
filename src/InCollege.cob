@@ -681,7 +681,7 @@
                CLOSE ConnectionsFile
            ELSE
                DISPLAY "ERROR: Could not open ConnectionsFile. Status: " FS-CONNEC
-           END-IF.
+           END-IF
        .
 
 
@@ -1341,10 +1341,31 @@
            END-PERFORM
            .
        *> ---------------- View network ----------------
-       VIEW-NETWORK.
-           PERFORM UNTIL 1 = 2
-              MOVE "View Network (coming soon)" TO LINE-MSG PERFORM SAY
-              EXIT PARAGRAPH
-           END-PERFORM
-           .
+    VIEW-NETWORK.
+        MOVE FUNCTION UPPER-CASE(FUNCTION TRIM(CURRENT-USER)) TO U-NORM
 
+        MOVE 0 TO PROFILE-FOUND
+        CLOSE ConnectionsFile
+        OPEN INPUT ConnectionsFile
+
+   MOVE "Your Connections:" TO LINE-MSG PERFORM SAY
+
+   PERFORM UNTIL 1 = 2
+         READ ConnectionsFile AT END EXIT PERFORM END-READ
+         IF FUNCTION UPPER-CASE(FUNCTION TRIM(CR-USER)) = U-NORM
+             IF CR-CONNEC-NAME NOT = SPACES
+              MOVE 1 TO PROFILE-FOUND
+              MOVE FUNCTION TRIM(CR-CONNEC-NAME) TO LINE-MSG
+              PERFORM SAY
+             END-IF
+         END-IF
+        END-PERFORM
+
+        CLOSE ConnectionsFile
+
+        IF PROFILE-FOUND = 0
+         MOVE "You have no connections at this time." TO LINE-MSG PERFORM SAY
+        END-IF
+
+        EXIT PARAGRAPH
+        .
