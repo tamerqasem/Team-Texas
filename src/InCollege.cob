@@ -1340,32 +1340,52 @@
               EXIT PARAGRAPH
            END-PERFORM
            .
-       *> ---------------- View network ----------------
+    *> ---------------- View network ----------------
     VIEW-NETWORK.
-        MOVE FUNCTION UPPER-CASE(FUNCTION TRIM(CURRENT-USER)) TO U-NORM
+     MOVE FUNCTION UPPER-CASE(FUNCTION TRIM(CURRENT-USER)) TO U-NORM
 
-        MOVE 0 TO PROFILE-FOUND
-        CLOSE ConnectionsFile
-        OPEN INPUT ConnectionsFile
+     MOVE 0 TO PROFILE-FOUND
+     CLOSE ConnectionsFile
+     OPEN INPUT ConnectionsFile
 
-   MOVE "Your Connections:" TO LINE-MSG PERFORM SAY
+     MOVE "Your Connections:" TO LINE-MSG PERFORM SAY
 
-   PERFORM UNTIL 1 = 2
+     PERFORM UNTIL 1 = 2
          READ ConnectionsFile AT END EXIT PERFORM END-READ
          IF FUNCTION UPPER-CASE(FUNCTION TRIM(CR-USER)) = U-NORM
-             IF CR-CONNEC-NAME NOT = SPACES
-              MOVE 1 TO PROFILE-FOUND
-              MOVE FUNCTION TRIM(CR-CONNEC-NAME) TO LINE-MSG
+          IF CR-CONNEC-NAME NOT = SPACES
+              *> Lookup full name in ProfileFile
+              MOVE SPACES TO FULL-NAME
+              CLOSE ProfileFile
+              OPEN INPUT ProfileFile
+              MOVE 0 TO PROFILE-FOUND
+              PERFORM UNTIL 1 = 2
+               READ ProfileFile AT END EXIT PERFORM END-READ
+               IF FUNCTION UPPER-CASE(FUNCTION TRIM(PR-USER)) = FUNCTION UPPER-CASE(FUNCTION TRIM(CR-CONNEC-NAME))
+                MOVE 1 TO PROFILE-FOUND
+                STRING FUNCTION TRIM(PR-FNAME) " " FUNCTION TRIM(PR-LNAME)
+                    INTO FULL-NAME
+                END-STRING
+                EXIT PERFORM
+               END-IF
+              END-PERFORM
+              CLOSE ProfileFile
+
+              IF PROFILE-FOUND = 1
+               MOVE FULL-NAME TO LINE-MSG
+              ELSE
+               MOVE FUNCTION TRIM(CR-CONNEC-NAME) TO LINE-MSG
+              END-IF
               PERFORM SAY
-             END-IF
+          END-IF
          END-IF
-        END-PERFORM
+     END-PERFORM
 
-        CLOSE ConnectionsFile
+     CLOSE ConnectionsFile
 
-        IF PROFILE-FOUND = 0
+     IF PROFILE-FOUND = 0
          MOVE "You have no connections at this time." TO LINE-MSG PERFORM SAY
-        END-IF
+     END-IF
 
-        EXIT PARAGRAPH
-        .
+     EXIT PARAGRAPH
+     .
