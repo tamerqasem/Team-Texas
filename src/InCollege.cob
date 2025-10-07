@@ -382,6 +382,7 @@
               MOVE "3. Find someone you know"             TO LINE-MSG PERFORM SAY
               MOVE "4. View My Pending Connection Requests" TO LINE-MSG PERFORM SAY
               MOVE "5. Learn a New Skill"                 TO LINE-MSG PERFORM SAY
+              MOVE "6. View My Network"                  TO LINE-MSG PERFORM SAY
               MOVE "Enter your choice:"                   TO LINE-MSG PERFORM SAY
 
               PERFORM READ-NEXT
@@ -395,7 +396,8 @@
                     WHEN NAV-SEL = 3  PERFORM FIND-SOMEONE
                     WHEN NAV-SEL = 4  PERFORM VIEW-PENDING-REQUESTS
                     WHEN NAV-SEL = 5  PERFORM SKILL-MENU
-                    WHEN OTHER        MOVE "Please pick 1, 2, 3, 4, or 5." TO LINE-MSG PERFORM SAY
+                    WHEN NAV-SEL = 6  PERFORM VIEW-NETWORK
+                    WHEN OTHER        MOVE "Please pick 1, 2, 3, 4, 5, or 6." TO LINE-MSG PERFORM SAY
                  END-EVALUATE
               END-IF
            END-PERFORM
@@ -1257,3 +1259,11 @@
               EXIT PARAGRAPH
            END-PERFORM
            .
+       *> ---------------- View network ----------------
+       VIEW-NETWORK.
+           PERFORM UNTIL 1 = 2
+              MOVE "View Network (coming soon)" TO LINE-MSG PERFORM SAY
+              EXIT PARAGRAPH
+           END-PERFORM
+           .
+
