@@ -76,8 +76,7 @@
        FD ConnectionsFile.
        01  CONNECTIONS-REC.
            05 CR-USER                      PIC X(20).
-           01 CR-CONNEC-LIST.
-               05 CR-CONNEC-NAME           PIC X(20).
+           05 CR-CONNEC-NAME               PIC X(20).
 
        FD  TempProfileFile
            RECORD CONTAINS 824 CHARACTERS
@@ -596,11 +595,93 @@
            .
        *> Takes `CONNEC-NAME` as string input
        ACCEPT-CONNECTION-REQUEST.
-           *> Remove user from the pending request table, and add them to the connections table (doubly).
-           MOVE "THIS IS THE ACCEPT-CONNECTION-REQUEST SECTION" TO LINE-MSG PERFORM SAY
-           MOVE SPACES TO LINE-MSG
-           STRING "Retrieved Name: '" FUNCTION TRIM(CONNEC-NAME) "'." INTO LINE-MSG PERFORM SAY
+      *> 1. Remove user from the pending request table.
+      *> 2. Add them to the connections table (doubly).
+
+      *> --- PART 1: REMOVE THE PENDING REQUEST ---
+      *> This is the same logic as the REJECT paragraph. It copies all
+      *> records except the accepted one to a temp file, then overwrites
+      *> the original.
+
+      *> Normalize the names once for efficient comparison.
+           MOVE FUNCTION UPPER-CASE(FUNCTION TRIM(CURRENT-USER)) TO U-NORM.
+           MOVE FUNCTION UPPER-CASE(FUNCTION TRIM(CONNEC-NAME)) TO C-NORM.
+
+      *> Open original file for reading and temp file for writing.
+           OPEN INPUT ReqFile.
+           OPEN OUTPUT TempReqFile.
+
+           PERFORM UNTIL 1 = 2
+               READ ReqFile
+                   AT END EXIT PERFORM
+               END-READ
+
+      *> Check if the current record is the one being accepted.
+               IF (FUNCTION TRIM(REQ-SENDER) = FUNCTION TRIM(C-NORM)) AND
+                  (FUNCTION TRIM(REQ-RECIP)  = FUNCTION TRIM(U-NORM))
+      *> This is the record to remove, so do nothing.
+                   CONTINUE
+               ELSE
+      *> This is a record to keep, write it to the temp file.
+                   WRITE TEMP-REQ-REC FROM REQ-REC
+               END-IF
+           END-PERFORM.
+
+           CLOSE ReqFile.
+           CLOSE TempReqFile.
+
+      *> Now, overwrite the original ReqFile with the temp file.
+           OPEN OUTPUT ReqFile.
+           OPEN INPUT TempReqFile.
+
+           PERFORM UNTIL 1 = 2
+               READ TempReqFile
+                   AT END EXIT PERFORM
+               END-READ
+               WRITE REQ-REC FROM TEMP-REQ-REC
+           END-PERFORM.
+
+           CLOSE ReqFile.
+           CLOSE TempReqFile.
+
+      *> --- PART 2: ADD THE NEW CONNECTION (DOUBLY) ---
+      *> The file was opened at BOOT, so we must CLOSE it first.
+           CLOSE ConnectionsFile.
+           OPEN EXTEND ConnectionsFile.
+
+      *> Check file status after OPEN. "00" means success.
+           IF FS-CONNEC = "00"
+      *> Write the first record: CURRENT-USER is connected to CONNEC-NAME
+               MOVE U-NORM TO CR-USER
+               MOVE C-NORM TO CR-CONNEC-NAME
+               WRITE CONNECTIONS-REC
+
+      *> Check status after first WRITE, if successful, write second record
+               IF FS-CONNEC = "00"
+                  MOVE C-NORM TO CR-USER
+                  MOVE U-NORM TO CR-CONNEC-NAME
+                  WRITE CONNECTIONS-REC
+
+      *> Check status after second WRITE for final confirmation
+                  IF FS-CONNEC = "00"
+      *> --- PART 3: PROVIDE USER FEEDBACK (SUCCESS) ---
+                     MOVE SPACES TO LINE-MSG
+                     STRING "You are now connected with "
+                        FUNCTION TRIM(CONNEC-NAME) "." INTO LINE-MSG
+                     PERFORM SAY
+                  ELSE
+                     DISPLAY "ERROR: Failed to write second connection. Status: " FS-CONNEC
+                  END-IF
+               ELSE
+                  DISPLAY "ERROR: Failed to write first connection. Status: " FS-CONNEC
+               END-IF
+
+               CLOSE ConnectionsFile
+           ELSE
+               DISPLAY "ERROR: Could not open ConnectionsFile. Status: " FS-CONNEC
+           END-IF.
        .
+
 
        REJECT-CONNECTION-REQUEST.
            *> Remove user from the pending requests table by rewriting the file
