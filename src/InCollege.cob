@@ -174,7 +174,12 @@
        01  TARGET-USER                    PIC X(20)  VALUE SPACES.
        01  TARGET-NAME                    PIC X(120) VALUE SPACES.
        77  SUB-SEL                        PIC 99     VALUE 0.
+
+
        77  CONNEC-SEL                     PIC 99     VALUE 0.
+       01  CONNEC-NAME                    PIC X(20)  VALUE SPACES.
+       01  CONNEC-LIST-NAMES.
+           05 CLN-NAME PIC X(20) OCCURS 99 TIMES VALUE SPACES.
 
 
        *> Stable NEW buffer so READs never clobber inputs
@@ -244,8 +249,8 @@
 
            OPEN INPUT  InFile
            IF FS-IN = "35"
-              MOVE "ERROR: Missing input file: data/InCollege-Input.txt" TO LINE-MSG
-              PERFORM SAY
+              MOVE "ERROR: Missing input file: data/InCollege-Input.txt" TO LINE-MSG PERFORM SAY
+              MOVE "Check if you are in the correct directory, or create the file." TO LINE-MSG PERFORM SAY
               PERFORM HALT-PROGRAM
            END-IF
 
@@ -462,18 +467,20 @@
            .
        VIEW-PENDING-REQUESTS.
            MOVE "--- Pending Connection Requests ---" TO LINE-MSG PERFORM SAY
-           MOVE "Select a request to accept/reject" TO LINE-MSG PERFORM SAY
+           MOVE "Select a request to Accept/Reject" TO LINE-MSG PERFORM SAY
            MOVE 0 TO ANY-PENDING
            MOVE 0 TO CONNEC-SEL
            MOVE FUNCTION UPPER-CASE(FUNCTION TRIM(CURRENT-USER)) TO U-NORM
 
+           INITIALIZE CONNEC-LIST-NAMES. *> Temporary Variable. This will store connection username.
            OPEN INPUT ReqFile
            PERFORM UNTIL 1 = 2
               *> Loop through Request File and find matching users.
               READ ReqFile AT END EXIT PERFORM END-READ
               IF FUNCTION TRIM(REQ-RECIP) = U-NORM
                  MOVE 1 TO ANY-PENDING
-                 ADD 1 TO CONNEC-SEL
+                 ADD 1 TO CONNEC-SEL *> essentially just `i++`
+
 
                  *> Try to resolve sender to full name
                  MOVE SPACES TO FULL-NAME
@@ -493,14 +500,18 @@
                  END-PERFORM
                  CLOSE ProfileFile
 
+                 *> Add username to CONNEC-LIST-NAME array.
+                 MOVE REQ-SENDER TO CLN-NAME(CONNEC-SEL)
+
                  *> Change the name we print depending on if the user has created a profile yet.
+                 *> Format example `01. FirstName LastName`
                  IF PROFILE-FOUND = 1
                     MOVE SPACES TO LINE-MSG
-                    STRING " " CONNEC-SEL ") " FUNCTION TRIM(FULL-NAME) INTO LINE-MSG
+                    STRING " " CONNEC-SEL ". " FUNCTION TRIM(FULL-NAME) INTO LINE-MSG
                     END-STRING
                  ELSE
                     MOVE SPACES TO LINE-MSG
-                    STRING " " CONNEC-SEL ") " FUNCTION TRIM(REQ-SENDER) INTO LINE-MSG
+                    STRING " " CONNEC-SEL ". " FUNCTION TRIM(REQ-SENDER) INTO LINE-MSG
                     END-STRING
                  END-IF
 
@@ -510,14 +521,53 @@
            END-PERFORM
            CLOSE ReqFile
 
-           MOVE " 00) Return to Home Page" TO LINE-MSG PERFORM SAY
+           MOVE " 00. Return to Home Page" TO LINE-MSG PERFORM SAY
 
+           *> User Takes selection
            PERFORM READ-NEXT
            IF FUNCTION LENGTH(FUNCTION TRIM(LAST-LINE)) = 0
+               *> Invalid input
                CONTINUE
            ELSE
+               *> Transfer user input into NAV-SEL
                MOVE FUNCTION NUMVAL(FUNCTION TRIM(LAST-LINE)) TO NAV-SEL
-               MOVE "" TO LINE-MSG STRING "SELECTED " NAV-SEL INTO LINE-MSG PERFORM SAY
+
+
+               IF NAV-SEL = 0
+                   CONTINUE
+               ELSE IF NAV-SEL <= CONNEC-SEL
+                   *> Set selected username to CONNECT-NAME
+                   MOVE CLN-NAME(NAV-SEL) TO CONNEC-NAME
+
+                   MOVE SPACES TO LINE-MSG
+                   STRING " You selected (" NAV-SEL "): " CONNEC-NAME INTO LINE-MSG PERFORM SAY
+
+                   MOVE SPACES TO LINE-MSG
+                   STRING "   01. Accept '" FUNCTION TRIM(CONNEC-NAME) "'" INTO LINE-MSG PERFORM SAY
+                   STRING "   02. Reject '" FUNCTION TRIM(CONNEC-NAME) "'" INTO LINE-MSG PERFORM SAY
+                   MOVE   "   00. Return to Home Page" TO LINE-MSG PERFORM SAY
+
+                   PERFORM READ-NEXT
+                   IF FUNCTION LENGTH(FUNCTION TRIM(LAST-LINE)) = 0
+                       *> Invalid input
+                       CONTINUE
+                   ELSE
+                       MOVE FUNCTION NUMVAL(FUNCTION TRIM(LAST-LINE)) TO NAV-SEL
+                       EVALUATE TRUE
+                           WHEN NAV-SEL = 1
+                               PERFORM ACCEPT-CONNECTION-REQUEST
+                           WHEN NAV-SEL = 2
+                               PERFORM REJECT-CONNECTION-REQUEST
+                           WHEN NAV-SEL = 0
+                               CONTINUE
+                           WHEN OTHER
+
+                       END-EVALUATE
+                   END-IF
+
+               ELSE
+                   MOVE "INVALID INPUT" TO LINE-MSG PERFORM SAY
+               END-IF
 
            END-IF
 
@@ -527,13 +577,21 @@
 
            MOVE "-----------------------------------" TO LINE-MSG PERFORM SAY
            .
-      *> ACCEPT-CONNECTION-REQUEST.
+       *> Takes `CONNEC-NAME` as string input
+       ACCEPT-CONNECTION-REQUEST.
         *> Remove user from the pending request table, and add them to the connections table (doubly).
+           MOVE "THIS IS THE ACCEPT-CONNECTION-REQUEST SECTION" TO LINE-MSG PERFORM SAY
+           MOVE SPACES TO LINE-MSG
+           STRING "Retrieved Name: '" FUNCTION TRIM(CONNEC-NAME) "'." INTO LINE-MSG PERFORM SAY
+       .
 
-      *> .
-      *> REJECT-CONNECTION-REQUEST.
+       *> Takes `CONNEC-NAME` as string input
+       REJECT-CONNECTION-REQUEST.
         *> Remove user from the pending requests table
-      *> .
+           MOVE "THIS IS THE REJECT-CONNECTION-REQUEST SECTION" TO LINE-MSG PERFORM SAY
+           MOVE SPACES TO LINE-MSG
+           STRING "Retrieved Name: '" FUNCTION TRIM(CONNEC-NAME) "'." INTO LINE-MSG PERFORM SAY
+       .
 
        *> ---------------- Registration / Login ----------------
        REGISTER-FLOW.

@@ -13,10 +13,15 @@ Welcome, alice!
 5. Learn a New Skill
 Enter your choice:
 --- Pending Connection Requests ---
-Select a request to accept/reject
- 01) James Jamerson
- 00) Return to Home Page
-SELECTED 01
+Select a request to Accept/Reject
+ 01. James Jamerson
+ 00. Return to Home Page
+ You selected (01): JAMES
+   01. Accept 'JAMES'
+   02. Reject 'JAMES'
+   00. Return to Home Page
+THIS IS THE ACCEPT-CONNECTION-REQUEST SECTION
+Retrieved Name: 'JAMES'.
 -----------------------------------
 1. Create/Edit My Profile
 2. View My Profile
