@@ -561,12 +561,12 @@
                            WHEN NAV-SEL = 0
                                CONTINUE
                            WHEN OTHER
-
+                               MOVE "Invalid Input" TO LINE-MSG PERFORM SAY
                        END-EVALUATE
                    END-IF
 
                ELSE
-                   MOVE "INVALID INPUT" TO LINE-MSG PERFORM SAY
+                   MOVE "Invalid Input" TO LINE-MSG PERFORM SAY
                END-IF
 
            END-IF
@@ -579,7 +579,7 @@
            .
        *> Takes `CONNEC-NAME` as string input
        ACCEPT-CONNECTION-REQUEST.
-        *> Remove user from the pending request table, and add them to the connections table (doubly).
+           *> Remove user from the pending request table, and add them to the connections table (doubly).
            MOVE "THIS IS THE ACCEPT-CONNECTION-REQUEST SECTION" TO LINE-MSG PERFORM SAY
            MOVE SPACES TO LINE-MSG
            STRING "Retrieved Name: '" FUNCTION TRIM(CONNEC-NAME) "'." INTO LINE-MSG PERFORM SAY
