@@ -1,0 +1,35 @@
+Welcome to InCollege!
+1. Log In
+2. Create New Account
+Enter your choice:
+Please enter your username:
+Please enter your password:
+You have successfully logged in.
+Welcome, alice!
+1. Create/Edit My Profile
+2. View My Profile
+3. Find someone you know
+4. View My Pending Connection Requests
+5. Learn a New Skill
+6. View My Network
+Enter your choice:
+--- Pending Connection Requests ---
+Select a user to Accept/Reject:
+ 01. James Jamerson
+ 00. Return to Home Page
+ You selected (01): JAMES
+   01. Accept 'JAMES'
+   02. Reject 'JAMES'
+   00. Return to Home Page
+You are now connected with JAMES.
+-----------------------------------
+1. Create/Edit My Profile
+2. View My Profile
+3. Find someone you know
+4. View My Pending Connection Requests
+5. Learn a New Skill
+6. View My Network
+Enter your choice:
+Your Connections:
+James Jamerson
+--- END_OF_PROGRAM_EXECUTION ---
