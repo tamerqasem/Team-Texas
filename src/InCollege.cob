@@ -36,6 +36,10 @@
            SELECT ConnectionsFile ASSIGN TO "data/InCollege-Connections.dat"
                ORGANIZATION IS SEQUENTIAL
                FILE STATUS  IS FS-CONNEC.
+           SELECT JobFile ASSIGN TO "data/InCollege-Jobs.dat"
+                ORGANIZATION IS LINE SEQUENTIAL
+                FILE STATUS  IS FS-JOB.
+
 
 
        DATA DIVISION.
@@ -98,6 +102,18 @@
               10 TP-EDU-DEGREE             PIC X(30).
               10 TP-EDU-SCHOOL             PIC X(30).
               10 TP-EDU-YEARS              PIC X(10).
+
+       *> NEW: Jobs file (line sequential)
+       FD  JobFile.
+       01  JOB-REC.
+           05 JOB-ID         PIC 9(5).
+           05 JOB-TITLE      PIC X(50).
+           05 JOB-DESC       PIC X(200).
+           05 JOB-EMPLOYER   PIC X(50).
+           05 JOB-LOCATION   PIC X(50).
+           05 JOB-SALARY     PIC X(30).
+           05 JOB-POSTER     PIC X(20).
+
 
        FD  InFile.
        01  IN-REC                          PIC X(240).
@@ -211,6 +227,17 @@
               10 NP-EDU-SCHOOL             PIC X(30).
               10 NP-EDU-YEARS              PIC X(10).
 
+           77  FS-JOB           PIC XX     VALUE SPACES.
+
+           *> NEW: Job posting scratch/input fields
+           77  JOB-ID-SEQ       PIC 9(5)   VALUE 0.
+           01  JOB-TITLE-IN     PIC X(50)  VALUE SPACES.
+           01  JOB-DESC-IN      PIC X(200) VALUE SPACES.
+           01  JOB-EMP-IN       PIC X(50)  VALUE SPACES.
+           01  JOB-LOC-IN       PIC X(50)  VALUE SPACES.
+           01  JOB-SAL-IN       PIC X(30)  VALUE SPACES.
+
+
        PROCEDURE DIVISION.
        MAIN.
            PERFORM BOOT
@@ -272,6 +299,15 @@
               OPEN INPUT ReqFile
            END-IF
 
+           OPEN INPUT JobFile
+           IF FS-JOB = "35"
+              OPEN OUTPUT JobFile
+              CLOSE JobFile
+              MOVE SPACES TO FS-JOB
+              OPEN INPUT JobFile
+           END-IF
+
+
            OPEN INPUT  ConnectionsFile
            IF FS-CONNEC = "35"
               OPEN OUTPUT ConnectionsFile
@@ -289,6 +325,7 @@
            CLOSE OutFile
            CLOSE ReqFile
            CLOSE ConnectionsFile
+           CLOSE JobFile
            .
 
        *> ---------------- Utilities ----------------
@@ -382,6 +419,7 @@
               MOVE "4. View My Pending Connection Requests" TO LINE-MSG PERFORM SAY
               MOVE "5. Learn a New Skill"                 TO LINE-MSG PERFORM SAY
               MOVE "6. View My Network"                  TO LINE-MSG PERFORM SAY
+              MOVE "7. Search for a job"            TO LINE-MSG PERFORM SAY
               MOVE "Enter your choice:"                   TO LINE-MSG PERFORM SAY
 
               PERFORM READ-NEXT
@@ -396,6 +434,7 @@
                     WHEN NAV-SEL = 4  PERFORM VIEW-PENDING-REQUESTS
                     WHEN NAV-SEL = 5  PERFORM SKILL-MENU
                     WHEN NAV-SEL = 6  PERFORM VIEW-NETWORK
+                    WHEN NAV-SEL = 7  PERFORM JOB-MENU
                     WHEN OTHER        MOVE "Please pick 1, 2, 3, 4, 5, or 6." TO LINE-MSG PERFORM SAY
                  END-EVALUATE
               END-IF
@@ -1389,3 +1428,122 @@
 
      EXIT PARAGRAPH
      .
+
+     *> ---------------- Jobs: Menu + Posting ----------------
+     JOB-MENU.
+        MOVE "--- Job Search/Internship Menu ---" TO LINE-MSG
+        PERFORM SAY
+        MOVE "1. Post a Job/Internship"           TO LINE-MSG
+        PERFORM SAY
+        MOVE "2. Browse Jobs/Internships"         TO LINE-MSG
+        PERFORM SAY
+        MOVE "3. Back to Main Menu"               TO LINE-MSG
+        PERFORM SAY
+        MOVE "Enter your choice:"                  TO LINE-MSG
+        PERFORM SAY.
+
+        PERFORM READ-NEXT
+        MOVE FUNCTION NUMVAL(FUNCTION TRIM(LAST-LINE)) TO SUB-SEL.
+
+        EVALUATE SUB-SEL
+           WHEN 1
+             PERFORM POST-JOB-FLOW
+           WHEN 2
+             PERFORM BROWSE-JOB-FLOW
+           WHEN 3
+             CONTINUE
+           WHEN OTHER
+            MOVE "Invalid option." TO LINE-MSG
+            PERFORM SAY
+        END-EVALUATE.
+
+     POST-JOB-FLOW.
+           MOVE "--- Post a New Job/Internship ---" TO LINE-MSG PERFORM SAY
+
+           *> REQUIRED: Job Title
+           MOVE SPACES TO JOB-TITLE-IN
+           PERFORM UNTIL FUNCTION LENGTH(FUNCTION TRIM(JOB-TITLE-IN)) > 0
+              MOVE "Enter Job Title:" TO PROMPT-TEXT
+              PERFORM PROMPT-AND-READ
+              MOVE FUNCTION TRIM(LAST-LINE) TO JOB-TITLE-IN
+              IF FUNCTION LENGTH(FUNCTION TRIM(JOB-TITLE-IN)) = 0
+                 MOVE "This field is required." TO LINE-MSG PERFORM SAY
+              END-IF
+           END-PERFORM
+
+           *> REQUIRED: Description
+           MOVE SPACES TO JOB-DESC-IN
+           PERFORM UNTIL FUNCTION LENGTH(FUNCTION TRIM(JOB-DESC-IN)) > 0
+              MOVE "Enter Description (max 200 chars):" TO PROMPT-TEXT
+              PERFORM PROMPT-AND-READ
+              MOVE FUNCTION TRIM(LAST-LINE) TO JOB-DESC-IN
+              IF FUNCTION LENGTH(FUNCTION TRIM(JOB-DESC-IN)) = 0
+                 MOVE "This field is required." TO LINE-MSG PERFORM SAY
+              END-IF
+           END-PERFORM
+
+           *> REQUIRED: Employer
+           MOVE SPACES TO JOB-EMP-IN
+           PERFORM UNTIL FUNCTION LENGTH(FUNCTION TRIM(JOB-EMP-IN)) > 0
+              MOVE "Enter Employer Name:" TO PROMPT-TEXT
+              PERFORM PROMPT-AND-READ
+              MOVE FUNCTION TRIM(LAST-LINE) TO JOB-EMP-IN
+              IF FUNCTION LENGTH(FUNCTION TRIM(JOB-EMP-IN)) = 0
+                 MOVE "This field is required." TO LINE-MSG PERFORM SAY
+              END-IF
+           END-PERFORM
+
+           *> REQUIRED: Location
+           MOVE SPACES TO JOB-LOC-IN
+           PERFORM UNTIL FUNCTION LENGTH(FUNCTION TRIM(JOB-LOC-IN)) > 0
+              MOVE "Enter Location:" TO PROMPT-TEXT
+              PERFORM PROMPT-AND-READ
+              MOVE FUNCTION TRIM(LAST-LINE) TO JOB-LOC-IN
+              IF FUNCTION LENGTH(FUNCTION TRIM(JOB-LOC-IN)) = 0
+                 MOVE "This field is required." TO LINE-MSG PERFORM SAY
+              END-IF
+           END-PERFORM
+
+           *> OPTIONAL: Salary
+           MOVE "Enter Salary (optional, enter 'NONE' to skip):" TO PROMPT-TEXT
+           PERFORM PROMPT-AND-READ
+           IF FUNCTION UPPER-CASE(FUNCTION TRIM(LAST-LINE)) = "NONE"
+              MOVE SPACES TO JOB-SAL-IN
+           ELSE
+              MOVE FUNCTION TRIM(LAST-LINE) TO JOB-SAL-IN
+           END-IF
+
+           *> Determine next JOB-ID
+           MOVE 0 TO JOB-ID-SEQ
+           CLOSE JobFile
+           OPEN INPUT JobFile
+           PERFORM UNTIL 1 = 2
+              READ JobFile AT END EXIT PERFORM END-READ
+              IF JOB-ID > JOB-ID-SEQ
+                 MOVE JOB-ID TO JOB-ID-SEQ
+              END-IF
+           END-PERFORM
+           CLOSE JobFile
+           ADD 1 TO JOB-ID-SEQ
+
+           *> Append new record
+           OPEN EXTEND JobFile
+              MOVE JOB-ID-SEQ    TO JOB-ID
+              MOVE JOB-TITLE-IN  TO JOB-TITLE
+              MOVE JOB-DESC-IN   TO JOB-DESC
+              MOVE JOB-EMP-IN    TO JOB-EMPLOYER
+              MOVE JOB-LOC-IN    TO JOB-LOCATION
+              MOVE JOB-SAL-IN    TO JOB-SALARY
+              MOVE FUNCTION UPPER-CASE(FUNCTION TRIM(CURRENT-USER)) TO JOB-POSTER
+              WRITE JOB-REC
+           CLOSE JobFile
+           OPEN INPUT JobFile
+
+           MOVE "Job posted successfully!" TO LINE-MSG PERFORM SAY
+           MOVE "----------------------------------" TO LINE-MSG PERFORM SAY
+           .
+
+     BROWSE-JOB-FLOW.
+           MOVE "Browse Jobs/Internships is under construction." TO LINE-MSG PERFORM SAY
+           .
+

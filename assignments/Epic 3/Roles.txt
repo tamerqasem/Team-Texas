@@ -1,8 +1,0 @@
-TEAM TEXAS
-Sprint & Epic 3 from 09/17 to 9/24
-
-Scrum Master:Bryan Baldie, baldie1@usf.edu
-Developer #1: Suyog Bam, bams@usf.edu
-Developer #2: Alqasem, Tamer, tamerqasem@usf.edu
-Tester #1: Kevin Armenteros, armenterosk@usf.edu
-Tester #2: Nolwen Bachtle, nbachtle@usf.edu
