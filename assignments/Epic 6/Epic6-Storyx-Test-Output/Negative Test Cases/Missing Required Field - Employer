@@ -1,0 +1,40 @@
+Welcome to InCollege!
+1. Log In
+2. Create New Account
+Enter your choice:
+Please enter your username:
+Please enter your password:
+You have successfully logged in.
+Welcome, james!
+1. Create/Edit My Profile
+2. View My Profile
+3. Find someone you know
+4. View My Pending Connection Requests
+5. Learn a New Skill
+6. View My Network
+7. Search for a job
+Enter your choice:
+--- Job Search/Internship Menu ---
+1. Post a Job/Internship
+2. Browse Jobs/Internships
+3. Back to Main Menu
+Enter your choice:
+--- Post a New Job/Internship ---
+Enter Job Title:
+Enter Description (max 200 chars):
+Enter Employer Name:
+This field is required.
+Enter Employer Name:
+Enter Location:
+Enter Salary (optional, enter 'NONE' to skip):
+Job posted successfully!
+----------------------------------
+1. Create/Edit My Profile
+2. View My Profile
+3. Find someone you know
+4. View My Pending Connection Requests
+5. Learn a New Skill
+6. View My Network
+7. Search for a job
+Enter your choice:
+--- END_OF_PROGRAM_EXECUTION ---
