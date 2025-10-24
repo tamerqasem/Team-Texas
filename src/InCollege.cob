@@ -237,6 +237,13 @@
            01  JOB-LOC-IN       PIC X(50)  VALUE SPACES.
            01  JOB-SAL-IN       PIC X(30)  VALUE SPACES.
 
+*> ----- [ BROWSE + DETAILS WORKING-STORAGE] -----
+       77  JOB-COUNT          PIC 9(3)    VALUE 0.
+       77  JOB-SEL            PIC 9(3)    VALUE 0.
+       01  JOB-ID-CHOICE      PIC 9(5)    VALUE 0.
+       01  JOB-ID-MAP.
+           05 JOB-ID-SLOT     PIC 9(5) OCCURS 200 TIMES VALUE 0.
+
 
        PROCEDURE DIVISION.
        MAIN.
@@ -1449,7 +1456,9 @@
            WHEN 1
              PERFORM POST-JOB-FLOW
            WHEN 2
+
              PERFORM BROWSE-JOB-FLOW
+
            WHEN 3
              CONTINUE
            WHEN OTHER
@@ -1543,7 +1552,46 @@
            MOVE "----------------------------------" TO LINE-MSG PERFORM SAY
            .
 
-     BROWSE-JOB-FLOW.
-           MOVE "Browse Jobs/Internships is under construction." TO LINE-MSG PERFORM SAY
-           .
+*> ----- [EPIC 7 ADD START – BROWSE + DETAILS IMPLEMENTATION] -----
+    BROWSE-JOB-FLOW.
+    MOVE "--- Browse Jobs/Internships ---" TO LINE-MSG
+    PERFORM SAY
 
+    CLOSE JobFile
+    OPEN INPUT JobFile
+
+    MOVE 0 TO JOB-ID-SEQ
+
+    PERFORM UNTIL 1 = 2
+        READ JobFile
+            AT END
+                EXIT PERFORM
+        END-READ
+
+        IF JOB-TITLE NOT = SPACES
+            ADD 1 TO JOB-ID-SEQ
+            MOVE SPACES TO LINE-MSG
+            STRING
+               FUNCTION TRIM(JOB-ID) ". "
+               FUNCTION TRIM(JOB-TITLE) " | "
+               FUNCTION TRIM(JOB-EMPLOYER) " | "
+               FUNCTION TRIM(JOB-LOCATION)
+               INTO LINE-MSG
+            END-STRING
+            PERFORM SAY
+        END-IF
+    END-PERFORM
+
+    CLOSE JobFile
+
+    IF JOB-ID-SEQ = 0
+        MOVE "No jobs currently posted." TO LINE-MSG
+        PERFORM SAY
+    END-IF
+
+    MOVE "Press 0 to return to Job Menu." TO LINE-MSG
+    PERFORM SAY
+    PERFORM READ-NEXT
+
+    EXIT PARAGRAPH
+    .

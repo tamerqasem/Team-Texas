@@ -2,9 +2,6 @@
 james
 James123!
 7
+2
 1
-Software Engineer Intern
-Build and test backend APIs for production systems.
-TechCorp
-New York
-75000
+0

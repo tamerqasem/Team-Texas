@@ -19,14 +19,19 @@ Enter your choice:
 2. Browse Jobs/Internships
 3. Back to Main Menu
 Enter your choice:
---- Post a New Job/Internship ---
-Enter Job Title:
-Enter Description (max 200 chars):
-Enter Employer Name:
-Enter Location:
-Enter Salary (optional, enter 'NONE' to skip):
-Job posted successfully!
-----------------------------------
+--- Browse Jobs/Internships ---
+00001. Software Engineer Intern | TechCorp | New York
+00002. Software Engineer Intern | TechCorp | New York
+Press 0 to return to Job Menu.
+1. Create/Edit My Profile
+2. View My Profile
+3. Find someone you know
+4. View My Pending Connection Requests
+5. Learn a New Skill
+6. View My Network
+7. Search for a job
+Enter your choice:
+Please pick 1, 2, 3, 4, 5, or 6.
 1. Create/Edit My Profile
 2. View My Profile
 3. Find someone you know

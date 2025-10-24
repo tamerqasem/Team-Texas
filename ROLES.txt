@@ -1,8 +1,8 @@
 TEAM TEXAS
 Sprint & Epic 6 from 10/09 to 10/22
 
-Scrum Master: Alqasem, Tamer, tamerqasem@usf.edu
-Developer #1: Kevin Armenteros, armenterosk@usf.edu
-Developer #2: Nolwen Bachtle, nbachtle@usf.edu
-Tester #1: Bryan Baldie, baldie1@usf.edu
-Tester #2: Suyog Bam, bams@usf.edu
+Scrum Master: Suyog Bam, bams@usf.edu
+Developer #1: Alqasem, Tamer, tamerqasem@usf.edu
+Developer #2: Kevin Armenteros, armenterosk@usf.edu
+Tester #1: Nolwen Bachtle, nbachtle@usf.edu
+Tester #2: Bryan Baldie, baldie1@usf.edu
