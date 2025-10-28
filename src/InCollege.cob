@@ -40,6 +40,10 @@
                 ORGANIZATION IS LINE SEQUENTIAL
                 FILE STATUS  IS FS-JOB.
 
+           SELECT ApplicationFile ASSIGN TO "data/InCollege-Applications.dat"
+                ORGANIZATION IS LINE SEQUENTIAL
+                FILE STATUS  IS FS-APP.
+
 
 
        DATA DIVISION.
@@ -114,6 +118,14 @@
            05 JOB-SALARY     PIC X(30).
            05 JOB-POSTER     PIC X(20).
 
+       FD  ApplicationFile.
+       01  APP-REC.
+           05 APP-USER       PIC X(20).
+           05 APP-JOB-ID     PIC 9(5).
+           05 APP-JOB-TITLE  PIC X(50).
+           05 APP-EMPLOYER   PIC X(50).
+           05 APP-LOCATION   PIC X(50).
+
 
        FD  InFile.
        01  IN-REC                          PIC X(240).
@@ -138,6 +150,7 @@
        77  FS-REQ                          PIC XX     VALUE SPACES.
 
        77  FS-CONNEC                       PIC XX     VALUE SPACES.
+       77  FS-APP                           PIC XX     VALUE SPACES.
 
        01  IN-EOF-FLAG                     PIC 9      VALUE 0.
            88  IN-AT-EOF                              VALUE 1.
@@ -314,6 +327,13 @@
               OPEN INPUT JobFile
            END-IF
 
+           OPEN INPUT ApplicationFile
+           IF FS-APP = "35"
+              OPEN OUTPUT ApplicationFile
+              CLOSE ApplicationFile
+              MOVE SPACES TO FS-APP
+              OPEN INPUT ApplicationFile
+           END-IF
 
            OPEN INPUT  ConnectionsFile
            IF FS-CONNEC = "35"
@@ -333,6 +353,7 @@
            CLOSE ReqFile
            CLOSE ConnectionsFile
            CLOSE JobFile
+           CLOSE ApplicationFile
            .
 
        *> ---------------- Utilities ----------------
@@ -1444,7 +1465,9 @@
         PERFORM SAY
         MOVE "2. Browse Jobs/Internships"         TO LINE-MSG
         PERFORM SAY
-        MOVE "3. Back to Main Menu"               TO LINE-MSG
+        MOVE "3. View My Applications"            TO LINE-MSG
+        PERFORM SAY
+        MOVE "4. Back to Main Menu"               TO LINE-MSG
         PERFORM SAY
         MOVE "Enter your choice:"                  TO LINE-MSG
         PERFORM SAY.
@@ -1456,10 +1479,10 @@
            WHEN 1
              PERFORM POST-JOB-FLOW
            WHEN 2
-
              PERFORM BROWSE-JOB-FLOW
-
            WHEN 3
+             PERFORM VIEW-MY-APPLICATIONS
+           WHEN 4
              CONTINUE
            WHEN OTHER
             MOVE "Invalid option." TO LINE-MSG
@@ -1554,13 +1577,14 @@
 
 *> ----- [EPIC 7 ADD START – BROWSE + DETAILS IMPLEMENTATION] -----
     BROWSE-JOB-FLOW.
-    MOVE "--- Browse Jobs/Internships ---" TO LINE-MSG
+    MOVE "--- Available Job Listings ---" TO LINE-MSG
     PERFORM SAY
 
     CLOSE JobFile
     OPEN INPUT JobFile
 
-    MOVE 0 TO JOB-ID-SEQ
+    MOVE 0 TO JOB-COUNT
+    INITIALIZE JOB-ID-MAP
 
     PERFORM UNTIL 1 = 2
         READ JobFile
@@ -1569,13 +1593,12 @@
         END-READ
 
         IF JOB-TITLE NOT = SPACES
-            ADD 1 TO JOB-ID-SEQ
+            ADD 1 TO JOB-COUNT
+            MOVE JOB-ID TO JOB-ID-SLOT(JOB-COUNT)
             MOVE SPACES TO LINE-MSG
             STRING
-               FUNCTION TRIM(JOB-ID) ". "
-               FUNCTION TRIM(JOB-TITLE) " | "
-               FUNCTION TRIM(JOB-EMPLOYER) " | "
-               FUNCTION TRIM(JOB-LOCATION)
+               FUNCTION TRIM(JOB-TITLE) " at " FUNCTION TRIM(JOB-EMPLOYER) 
+               " (" FUNCTION TRIM(JOB-LOCATION) ")"
                INTO LINE-MSG
             END-STRING
             PERFORM SAY
@@ -1584,14 +1607,179 @@
 
     CLOSE JobFile
 
-    IF JOB-ID-SEQ = 0
+    IF JOB-COUNT = 0
         MOVE "No jobs currently posted." TO LINE-MSG
+        PERFORM SAY
+        EXIT PARAGRAPH
+    END-IF
+
+    MOVE "-----------------------------" TO LINE-MSG
+    PERFORM SAY
+    MOVE "Enter job number to view details, or 0 to go back:" TO LINE-MSG
+    PERFORM SAY
+    PERFORM READ-NEXT
+    MOVE FUNCTION NUMVAL(FUNCTION TRIM(LAST-LINE)) TO JOB-SEL
+
+    IF JOB-SEL = 0
+        EXIT PARAGRAPH
+    END-IF
+
+    IF JOB-SEL > 0 AND JOB-SEL <= JOB-COUNT
+        MOVE JOB-ID-SLOT(JOB-SEL) TO JOB-ID-CHOICE
+        PERFORM VIEW-JOB-DETAILS
+    ELSE
+        MOVE "Invalid job number." TO LINE-MSG
         PERFORM SAY
     END-IF
 
-    MOVE "Press 0 to return to Job Menu." TO LINE-MSG
-    PERFORM SAY
-    PERFORM READ-NEXT
-
     EXIT PARAGRAPH
     .
+
+    VIEW-JOB-DETAILS.
+        MOVE "--- Job Details ---" TO LINE-MSG
+        PERFORM SAY
+
+        CLOSE JobFile
+        OPEN INPUT JobFile
+
+        PERFORM UNTIL 1 = 2
+            READ JobFile
+                AT END
+                    EXIT PERFORM
+            END-READ
+
+            IF JOB-ID = JOB-ID-CHOICE
+                MOVE "Title: " TO PROMPT-TEXT
+                MOVE FUNCTION TRIM(JOB-TITLE) TO LAST-LINE
+                PERFORM SAY-LABEL-VALUE
+
+                MOVE "Description: " TO PROMPT-TEXT
+                MOVE FUNCTION TRIM(JOB-DESC) TO LAST-LINE
+                PERFORM SAY-LABEL-VALUE
+
+                MOVE "Employer: " TO PROMPT-TEXT
+                MOVE FUNCTION TRIM(JOB-EMPLOYER) TO LAST-LINE
+                PERFORM SAY-LABEL-VALUE
+
+                MOVE "Location: " TO PROMPT-TEXT
+                MOVE FUNCTION TRIM(JOB-LOCATION) TO LAST-LINE
+                PERFORM SAY-LABEL-VALUE
+
+                IF JOB-SALARY NOT = SPACES
+                    MOVE "Salary: " TO PROMPT-TEXT
+                    MOVE FUNCTION TRIM(JOB-SALARY) TO LAST-LINE
+                    PERFORM SAY-LABEL-VALUE
+                END-IF
+
+                MOVE "-------------------" TO LINE-MSG
+                PERFORM SAY
+                MOVE "1. Apply for this Job" TO LINE-MSG
+                PERFORM SAY
+                MOVE "2. Back to Job List" TO LINE-MSG
+                PERFORM SAY
+                MOVE "Enter your choice:" TO LINE-MSG
+                PERFORM SAY
+
+                PERFORM READ-NEXT
+                MOVE FUNCTION NUMVAL(FUNCTION TRIM(LAST-LINE)) TO SUB-SEL
+
+                EVALUATE SUB-SEL
+                    WHEN 1
+                        PERFORM APPLY-FOR-JOB
+                    WHEN 2
+                        PERFORM BROWSE-JOB-FLOW
+                    WHEN OTHER
+                        MOVE "Invalid option." TO LINE-MSG
+                        PERFORM SAY
+                END-EVALUATE
+
+                EXIT PERFORM
+            END-IF
+        END-PERFORM
+
+        CLOSE JobFile
+        EXIT PARAGRAPH
+        .
+
+    APPLY-FOR-JOB.
+        MOVE FUNCTION UPPER-CASE(FUNCTION TRIM(CURRENT-USER)) TO APP-USER
+        MOVE JOB-ID-CHOICE TO APP-JOB-ID
+        MOVE FUNCTION TRIM(JOB-TITLE) TO APP-JOB-TITLE
+        MOVE FUNCTION TRIM(JOB-EMPLOYER) TO APP-EMPLOYER
+        MOVE FUNCTION TRIM(JOB-LOCATION) TO APP-LOCATION
+
+        CLOSE ApplicationFile
+        OPEN EXTEND ApplicationFile
+        WRITE APP-REC
+        CLOSE ApplicationFile
+        OPEN INPUT ApplicationFile
+
+        MOVE SPACES TO LINE-MSG
+        STRING "Your application for " FUNCTION TRIM(APP-JOB-TITLE) 
+               " at " FUNCTION TRIM(APP-EMPLOYER) " has been submitted."
+               INTO LINE-MSG
+        END-STRING
+        PERFORM SAY
+
+        EXIT PARAGRAPH
+        .
+
+    VIEW-MY-APPLICATIONS.
+        MOVE FUNCTION UPPER-CASE(FUNCTION TRIM(CURRENT-USER)) TO U-NORM
+        MOVE "--- Your Job Applications ---" TO LINE-MSG
+        PERFORM SAY
+
+        MOVE SPACES TO LINE-MSG
+        STRING "Application Summary for " FUNCTION TRIM(CURRENT-USER)
+               INTO LINE-MSG
+        END-STRING
+        PERFORM SAY
+
+        MOVE "------------------------------" TO LINE-MSG
+        PERFORM SAY
+
+        CLOSE ApplicationFile
+        OPEN INPUT ApplicationFile
+
+        MOVE 0 TO JOB-COUNT
+        PERFORM UNTIL 1 = 2
+            READ ApplicationFile
+                AT END
+                    EXIT PERFORM
+            END-READ
+
+            IF FUNCTION UPPER-CASE(FUNCTION TRIM(APP-USER)) = U-NORM
+                ADD 1 TO JOB-COUNT
+                MOVE "Job Title: " TO PROMPT-TEXT
+                MOVE FUNCTION TRIM(APP-JOB-TITLE) TO LAST-LINE
+                PERFORM SAY-LABEL-VALUE
+
+                MOVE "Employer: " TO PROMPT-TEXT
+                MOVE FUNCTION TRIM(APP-EMPLOYER) TO LAST-LINE
+                PERFORM SAY-LABEL-VALUE
+
+                MOVE "Location: " TO PROMPT-TEXT
+                MOVE FUNCTION TRIM(APP-LOCATION) TO LAST-LINE
+                PERFORM SAY-LABEL-VALUE
+
+                MOVE "---" TO LINE-MSG
+                PERFORM SAY
+            END-IF
+        END-PERFORM
+
+        CLOSE ApplicationFile
+
+        MOVE "------------------------------" TO LINE-MSG
+        PERFORM SAY
+
+        MOVE SPACES TO LINE-MSG
+        STRING "Total Applications: " JOB-COUNT
+               INTO LINE-MSG
+        END-STRING
+        PERFORM SAY
+
+        MOVE "------------------------------" TO LINE-MSG
+        PERFORM SAY
+
+        EXIT PARAGRAPH
+        .
