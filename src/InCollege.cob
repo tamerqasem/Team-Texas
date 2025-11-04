@@ -136,7 +136,7 @@
        01  REQ-REC.
            05 REQ-SENDER                  PIC X(20).   *> UPPER-CASE username
            05 REQ-RECIP                   PIC X(20).   *> UPPER-CASE username
-              
+
        FD  TempReqFile.
 
        01  TEMP-REQ-REC.
@@ -1720,7 +1720,7 @@
             MOVE JOB-ID TO JOB-ID-SLOT(JOB-COUNT)
             MOVE SPACES TO LINE-MSG
             STRING
-               FUNCTION TRIM(JOB-TITLE) " at " FUNCTION TRIM(JOB-EMPLOYER) 
+               FUNCTION TRIM(JOB-TITLE) " at " FUNCTION TRIM(JOB-EMPLOYER)
                " (" FUNCTION TRIM(JOB-LOCATION) ")"
                INTO LINE-MSG
             END-STRING
@@ -1838,7 +1838,7 @@
         OPEN INPUT ApplicationFile
 
         MOVE SPACES TO LINE-MSG
-        STRING "Your application for " FUNCTION TRIM(APP-JOB-TITLE) 
+        STRING "Your application for " FUNCTION TRIM(APP-JOB-TITLE)
                " at " FUNCTION TRIM(APP-EMPLOYER) " has been submitted."
                INTO LINE-MSG
         END-STRING
