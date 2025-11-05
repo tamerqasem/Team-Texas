@@ -15,12 +15,24 @@ Welcome, james!
 7. Search for a job
 8. Messages
 Enter your choice:
+Your Connections:
+Alice Alicer
+1. Create/Edit My Profile
+2. View My Profile
+3. Find someone you know
+4. View My Pending Connection Requests
+5. Learn a New Skill
+6. View My Network
+7. Search for a job
+8. Messages
+Enter your choice:
 --- Messages Menu ---
 1. Send a New Message
 2. View My Messages
 3. Back to Main Menu
 Enter your choice:
-View My Messages is under construction.
+Enter recipient's username (must be a connection):
+You can only message users you are connected with.
 --- Messages Menu ---
 1. Send a New Message
 2. View My Messages
