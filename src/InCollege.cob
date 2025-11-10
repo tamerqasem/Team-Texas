@@ -599,7 +599,47 @@
            .
 
        VIEW-MESSAGES-FLOW.
-           MOVE "View My Messages is under construction." TO LINE-MSG PERFORM SAY
+           MOVE FUNCTION UPPER-CASE(FUNCTION TRIM(CURRENT-USER)) TO U-NORM
+           MOVE "--- Your Messages ---" TO LINE-MSG PERFORM SAY
+
+           MOVE 0 TO I     *> reuse I as a counter of messages found
+
+           CLOSE MessageFile
+           OPEN INPUT MessageFile
+
+           PERFORM UNTIL 1 = 2
+               READ MessageFile
+                   AT END EXIT PERFORM
+               END-READ
+
+               IF FUNCTION UPPER-CASE(FUNCTION TRIM(MSG-RECIP)) = U-NORM
+                   ADD 1 TO I
+
+                   MOVE "From:" TO PROMPT-TEXT
+                   MOVE FUNCTION TRIM(MSG-SENDER) TO LAST-LINE
+                   PERFORM SAY-LABEL-VALUE
+
+                   MOVE "Message:" TO PROMPT-TEXT
+                   MOVE FUNCTION TRIM(MSG-CONTENT) TO LAST-LINE
+                   PERFORM SAY-LABEL-VALUE
+
+                   IF MSG-TIMESTAMP NOT = SPACES
+                      MOVE "Sent:" TO PROMPT-TEXT
+                      MOVE FUNCTION TRIM(MSG-TIMESTAMP) TO LAST-LINE
+                      PERFORM SAY-LABEL-VALUE
+                   END-IF
+
+                   MOVE "---" TO LINE-MSG PERFORM SAY
+               END-IF
+           END-PERFORM
+
+           CLOSE MessageFile
+
+           IF I = 0
+              MOVE "You have no messages at this time." TO LINE-MSG PERFORM SAY
+           END-IF
+
+           MOVE "---------------------" TO LINE-MSG PERFORM SAY
            EXIT PARAGRAPH
            .
        SEND-REQUEST.
