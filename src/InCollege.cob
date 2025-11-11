@@ -43,6 +43,9 @@
            SELECT ApplicationFile ASSIGN TO "data/InCollege-Applications.dat"
                 ORGANIZATION IS LINE SEQUENTIAL
                 FILE STATUS  IS FS-APP.
+            SELECT MessageFile ASSIGN TO "data/InCollege-Messages.dat"
+                ORGANIZATION IS LINE SEQUENTIAL
+                FILE STATUS  IS FS-MSG.
 
 
 
@@ -133,12 +136,19 @@
        01  REQ-REC.
            05 REQ-SENDER                  PIC X(20).   *> UPPER-CASE username
            05 REQ-RECIP                   PIC X(20).   *> UPPER-CASE username
-              FD  TempReqFile.
+              
+       FD  TempReqFile.
 
        01  TEMP-REQ-REC.
            05 TREQ-SENDER                 PIC X(20).
            05 TREQ-RECIP                  PIC X(20).
 
+       FD  MessageFile.
+       01  MESSAGE-REC.
+           05 MSG-SENDER                  PIC X(20).
+           05 MSG-RECIP                   PIC X(20).
+           05 MSG-CONTENT                 PIC X(200).
+           05 MSG-TIMESTAMP               PIC X(20).
 
        WORKING-STORAGE SECTION.
        77  FS-OUT                          PIC XX     VALUE SPACES.
@@ -148,9 +158,11 @@
        77  FS-IN                           PIC XX     VALUE SPACES.
 
        77  FS-REQ                          PIC XX     VALUE SPACES.
-
+       77  FS-TREQ                         PIC XX     VALUE SPACES.
        77  FS-CONNEC                       PIC XX     VALUE SPACES.
        77  FS-APP                           PIC XX     VALUE SPACES.
+       77  FS-JOB                          PIC XX     VALUE SPACES.
+       77  FS-MSG                          PIC XX     VALUE SPACES.
 
        01  IN-EOF-FLAG                     PIC 9      VALUE 0.
            88  IN-AT-EOF                              VALUE 1.
@@ -240,7 +252,7 @@
               10 NP-EDU-SCHOOL             PIC X(30).
               10 NP-EDU-YEARS              PIC X(10).
 
-           77  FS-JOB           PIC XX     VALUE SPACES.
+
 
            *> NEW: Job posting scratch/input fields
            77  JOB-ID-SEQ       PIC 9(5)   VALUE 0.
@@ -250,13 +262,17 @@
            01  JOB-LOC-IN       PIC X(50)  VALUE SPACES.
            01  JOB-SAL-IN       PIC X(30)  VALUE SPACES.
 
-*> ----- [ BROWSE + DETAILS WORKING-STORAGE] -----
+
        77  JOB-COUNT          PIC 9(3)    VALUE 0.
        77  JOB-SEL            PIC 9(3)    VALUE 0.
        01  JOB-ID-CHOICE      PIC 9(5)    VALUE 0.
        01  JOB-ID-MAP.
            05 JOB-ID-SLOT     PIC 9(5) OCCURS 200 TIMES VALUE 0.
 
+       01  MSG-RECIP-IN       PIC X(20)  VALUE SPACES.
+       01  MSG-CONTENT-IN     PIC X(200) VALUE SPACES.
+       77  IS-CONNECTED       PIC 9      VALUE 0.
+       77  MSG-SEL            PIC 99     VALUE 0.
 
        PROCEDURE DIVISION.
        MAIN.
@@ -342,6 +358,13 @@
               MOVE SPACES TO FS-CONNEC
               OPEN INPUT ConnectionsFile
            END-IF
+           OPEN INPUT MessageFile
+           IF FS-MSG = "35"
+              OPEN OUTPUT MessageFile
+              CLOSE MessageFile
+              MOVE SPACES TO FS-MSG
+              OPEN INPUT MessageFile
+           END-IF
            .
 
        SHUTDOWN.
@@ -354,6 +377,7 @@
            CLOSE ConnectionsFile
            CLOSE JobFile
            CLOSE ApplicationFile
+           CLOSE MessageFile
            .
 
        *> ---------------- Utilities ----------------
@@ -448,6 +472,7 @@
               MOVE "5. Learn a New Skill"                 TO LINE-MSG PERFORM SAY
               MOVE "6. View My Network"                  TO LINE-MSG PERFORM SAY
               MOVE "7. Search for a job"            TO LINE-MSG PERFORM SAY
+              MOVE "8. Messages" TO LINE-MSG PERFORM SAY
               MOVE "Enter your choice:"                   TO LINE-MSG PERFORM SAY
 
               PERFORM READ-NEXT
@@ -463,7 +488,8 @@
                     WHEN NAV-SEL = 5  PERFORM SKILL-MENU
                     WHEN NAV-SEL = 6  PERFORM VIEW-NETWORK
                     WHEN NAV-SEL = 7  PERFORM JOB-MENU
-                    WHEN OTHER        MOVE "Please pick 1, 2, 3, 4, 5, or 6." TO LINE-MSG PERFORM SAY
+                    WHEN NAV-SEL = 8 PERFORM MESSAGE-MENU
+                    WHEN OTHER   MOVE "Please pick 1, 2, 3, 4, 5, 6, 7 or 8." TO LINE-MSG PERFORM SAY
                  END-EVALUATE
               END-IF
            END-PERFORM
@@ -478,6 +504,143 @@
               INTO LINE-MSG
            END-STRING
            PERFORM SAY
+           .
+              MESSAGE-MENU.
+           MOVE "--- Messages Menu ---" TO LINE-MSG PERFORM SAY
+           MOVE "1. Send a New Message" TO LINE-MSG PERFORM SAY
+           MOVE "2. View My Messages" TO LINE-MSG PERFORM SAY
+           MOVE "3. Back to Main Menu" TO LINE-MSG PERFORM SAY
+           MOVE "Enter your choice:" TO LINE-MSG PERFORM SAY
+           PERFORM READ-NEXT
+           MOVE FUNCTION NUMVAL(FUNCTION TRIM(LAST-LINE)) TO MSG-SEL
+           EVALUATE MSG-SEL
+               WHEN 1
+                   PERFORM SEND-MESSAGE-FLOW
+                   PERFORM MESSAGE-MENU
+               WHEN 2
+                   PERFORM VIEW-MESSAGES-FLOW
+                   PERFORM MESSAGE-MENU
+               WHEN 3
+                   EXIT PARAGRAPH
+               WHEN OTHER
+                   MOVE "Invalid option." TO LINE-MSG PERFORM SAY
+                   PERFORM MESSAGE-MENU
+           END-EVALUATE
+           EXIT PARAGRAPH
+           .
+
+       SEND-MESSAGE-FLOW.
+           MOVE "Enter recipient's username (must be a connection):" TO LINE-MSG PERFORM SAY
+           PERFORM READ-NEXT
+           MOVE FUNCTION TRIM(LAST-LINE) TO MSG-RECIP-IN
+           IF FUNCTION LENGTH(FUNCTION TRIM(MSG-RECIP-IN)) = 0
+               MOVE "Recipient username cannot be empty." TO LINE-MSG PERFORM SAY
+               EXIT PARAGRAPH
+           END-IF
+           PERFORM CHECK-CONNECTION
+           IF IS-CONNECTED = 0
+               EXIT PARAGRAPH
+           END-IF
+           MOVE "Enter your message (max 200 chars):" TO LINE-MSG PERFORM SAY
+           PERFORM READ-NEXT
+           MOVE FUNCTION TRIM(LAST-LINE) TO MSG-CONTENT-IN
+           IF FUNCTION LENGTH(FUNCTION TRIM(MSG-CONTENT-IN)) = 0
+               MOVE "Message content cannot be empty." TO LINE-MSG PERFORM SAY
+               EXIT PARAGRAPH
+           END-IF
+           CLOSE MessageFile
+           OPEN EXTEND MessageFile
+           MOVE FUNCTION UPPER-CASE(FUNCTION TRIM(CURRENT-USER)) TO MSG-SENDER
+           MOVE FUNCTION UPPER-CASE(FUNCTION TRIM(MSG-RECIP-IN)) TO MSG-RECIP
+           MOVE MSG-CONTENT-IN TO MSG-CONTENT
+           MOVE FUNCTION CURRENT-DATE(1:14) TO MSG-TIMESTAMP
+           WRITE MESSAGE-REC
+           CLOSE MessageFile
+           OPEN INPUT MessageFile
+           MOVE SPACES TO LINE-MSG
+           STRING "Message sent to " FUNCTION TRIM(MSG-RECIP-IN) " successfully!" INTO LINE-MSG
+           END-STRING
+           PERFORM SAY
+           MOVE "---------------------" TO LINE-MSG PERFORM SAY
+           EXIT PARAGRAPH
+           .
+
+       CHECK-CONNECTION.
+           MOVE 0 TO IS-CONNECTED
+           MOVE FUNCTION UPPER-CASE(FUNCTION TRIM(CURRENT-USER)) TO U-NORM
+           MOVE FUNCTION UPPER-CASE(FUNCTION TRIM(MSG-RECIP-IN)) TO P-NORM
+           MOVE 0 TO PROFILE-FOUND
+           PERFORM VARYING I FROM 1 BY 1 UNTIL I > ACCT-COUNT
+               IF FUNCTION UPPER-CASE(FUNCTION TRIM(T-USER(I))) = P-NORM
+                   MOVE 1 TO PROFILE-FOUND
+                   EXIT PERFORM
+               END-IF
+           END-PERFORM
+           IF PROFILE-FOUND = 0
+               MOVE "User not found." TO LINE-MSG PERFORM SAY
+               EXIT PARAGRAPH
+           END-IF
+           CLOSE ConnectionsFile
+           OPEN INPUT ConnectionsFile
+           PERFORM UNTIL 1 = 2
+               READ ConnectionsFile AT END EXIT PERFORM END-READ
+               IF FUNCTION UPPER-CASE(FUNCTION TRIM(CR-USER)) = U-NORM
+                   IF FUNCTION UPPER-CASE(FUNCTION TRIM(CR-CONNEC-NAME)) = P-NORM
+                       MOVE 1 TO IS-CONNECTED
+                       EXIT PERFORM
+                   END-IF
+               END-IF
+           END-PERFORM
+           CLOSE ConnectionsFile
+           IF IS-CONNECTED = 0
+               MOVE "You can only message users you are connected with." TO LINE-MSG PERFORM SAY
+           END-IF
+           EXIT PARAGRAPH
+           .
+
+       VIEW-MESSAGES-FLOW.
+           MOVE FUNCTION UPPER-CASE(FUNCTION TRIM(CURRENT-USER)) TO U-NORM
+           MOVE "--- Your Messages ---" TO LINE-MSG PERFORM SAY
+
+           MOVE 0 TO I     *> reuse I as a counter of messages found
+
+           CLOSE MessageFile
+           OPEN INPUT MessageFile
+
+           PERFORM UNTIL 1 = 2
+               READ MessageFile
+                   AT END EXIT PERFORM
+               END-READ
+
+               IF FUNCTION UPPER-CASE(FUNCTION TRIM(MSG-RECIP)) = U-NORM
+                   ADD 1 TO I
+
+                   MOVE "From:" TO PROMPT-TEXT
+                   MOVE FUNCTION TRIM(MSG-SENDER) TO LAST-LINE
+                   PERFORM SAY-LABEL-VALUE
+
+                   MOVE "Message:" TO PROMPT-TEXT
+                   MOVE FUNCTION TRIM(MSG-CONTENT) TO LAST-LINE
+                   PERFORM SAY-LABEL-VALUE
+
+                   IF MSG-TIMESTAMP NOT = SPACES
+                      MOVE "Sent:" TO PROMPT-TEXT
+                      MOVE FUNCTION TRIM(MSG-TIMESTAMP) TO LAST-LINE
+                      PERFORM SAY-LABEL-VALUE
+                   END-IF
+
+                   MOVE "---" TO LINE-MSG PERFORM SAY
+               END-IF
+           END-PERFORM
+
+           CLOSE MessageFile
+
+           IF I = 0
+              MOVE "You have no messages at this time." TO LINE-MSG PERFORM SAY
+           END-IF
+
+           MOVE "---------------------" TO LINE-MSG PERFORM SAY
+           EXIT PARAGRAPH
            .
        SEND-REQUEST.
            *> Normalize current and target usernames

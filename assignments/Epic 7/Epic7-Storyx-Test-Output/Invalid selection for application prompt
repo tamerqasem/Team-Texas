@@ -22,7 +22,7 @@ Enter your choice:
 Enter your choice:
 --- Available Job Listings ---
 Software Engineer Intern at TechCorp (New York)
-Software Engineer Intern at TechCorp (New York)
+Software Engineer Manager at TechCorp (New York)
 -----------------------------
 Enter job number to view details, or 0 to go back:
 --- Job Details ---
@@ -35,7 +35,7 @@ Salary: 75000
 1. Apply for this Job
 2. Back to Job List
 Enter your choice:
-Your application for Software Engineer Intern at TechCorp has been submitted.
+Invalid option.
 1. Create/Edit My Profile
 2. View My Profile
 3. Find someone you know
