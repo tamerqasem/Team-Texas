@@ -136,7 +136,7 @@
        01  REQ-REC.
            05 REQ-SENDER                  PIC X(20).   *> UPPER-CASE username
            05 REQ-RECIP                   PIC X(20).   *> UPPER-CASE username
-              
+
        FD  TempReqFile.
 
        01  TEMP-REQ-REC.
@@ -625,7 +625,54 @@
 
                    IF MSG-TIMESTAMP NOT = SPACES
                       MOVE "Sent:" TO PROMPT-TEXT
-                      MOVE FUNCTION TRIM(MSG-TIMESTAMP) TO LAST-LINE
+                      MOVE FUNCTION TRIM(MSG-TIMESTAMP) TO YEAR-RAW
+                      *> YEAR-RAW = YYYYMMDDhhmmss
+                      EVALUATE YEAR-RAW(5:2)
+                        WHEN "01" MOVE "Jan" TO C-NORM
+                        WHEN "02" MOVE "Feb" TO C-NORM
+                        WHEN "03" MOVE "Mar" TO C-NORM
+                        WHEN "04" MOVE "Apr" TO C-NORM
+                        WHEN "05" MOVE "May" TO C-NORM
+                        WHEN "06" MOVE "Jun" TO C-NORM
+                        WHEN "07" MOVE "Jul" TO C-NORM
+                        WHEN "08" MOVE "Aug" TO C-NORM
+                        WHEN "09" MOVE "Sep" TO C-NORM
+                        WHEN "10" MOVE "Oct" TO C-NORM
+                        WHEN "11" MOVE "Nov" TO C-NORM
+                        WHEN "12" MOVE "Dec" TO C-NORM
+                        WHEN OTHER MOVE "???" TO C-NORM
+                      END-EVALUATE
+                      MOVE FUNCTION NUMVAL(YEAR-RAW(9:2)) TO YEAR-NUM
+                      IF YEAR-NUM = 0
+                         MOVE 12 TO I
+                         MOVE "AM" TO P-NORM
+                      ELSE
+                         IF YEAR-NUM < 12
+                            MOVE YEAR-NUM TO I
+                            MOVE "AM" TO P-NORM
+                         ELSE IF YEAR-NUM = 12
+                            MOVE 12 TO I
+                            MOVE "PM" TO P-NORM
+                         ELSE
+                            COMPUTE I = YEAR-NUM - 12
+                            MOVE "PM" TO P-NORM
+                         END-IF
+                      END-IF
+                      MOVE SPACES TO LAST-LINE
+                      STRING
+                        FUNCTION TRIM(C-NORM) DELIMITED BY SIZE
+                        ", "  DELIMITED BY SIZE
+                        YEAR-RAW(7:2) DELIMITED BY SIZE
+                        ", "  DELIMITED BY SIZE
+                        YEAR-RAW(1:4) DELIMITED BY SIZE
+                        " "   DELIMITED BY SIZE
+                        I      DELIMITED BY SIZE
+                        ":"    DELIMITED BY SIZE
+                        YEAR-RAW(11:2) DELIMITED BY SIZE
+                        " "    DELIMITED BY SIZE
+                        FUNCTION TRIM(P-NORM) DELIMITED BY SIZE
+                        INTO LAST-LINE
+                      END-STRING
                       PERFORM SAY-LABEL-VALUE
                    END-IF
 
@@ -1760,7 +1807,7 @@
             MOVE JOB-ID TO JOB-ID-SLOT(JOB-COUNT)
             MOVE SPACES TO LINE-MSG
             STRING
-               FUNCTION TRIM(JOB-TITLE) " at " FUNCTION TRIM(JOB-EMPLOYER) 
+               FUNCTION TRIM(JOB-TITLE) " at " FUNCTION TRIM(JOB-EMPLOYER)
                " (" FUNCTION TRIM(JOB-LOCATION) ")"
                INTO LINE-MSG
             END-STRING
@@ -1768,7 +1815,7 @@
         END-IF
     END-PERFORM
 
-    CLOSE JobFile
+   CLOSE JobFile
 
     IF JOB-COUNT = 0
         MOVE "No jobs currently posted." TO LINE-MSG
@@ -1878,7 +1925,7 @@
         OPEN INPUT ApplicationFile
 
         MOVE SPACES TO LINE-MSG
-        STRING "Your application for " FUNCTION TRIM(APP-JOB-TITLE) 
+        STRING "Your application for " FUNCTION TRIM(APP-JOB-TITLE)
                " at " FUNCTION TRIM(APP-EMPLOYER) " has been submitted."
                INTO LINE-MSG
         END-STRING
