@@ -281,6 +281,67 @@
 
            MOVE "Welcome to InCollege!" TO LINE-MSG
            PERFORM SAY
+           MOVE "-----------------------------------------------------------------"
+             TO LINE-MSG
+           PERFORM SAY
+            MOVE "-----------------------------------------------------------------"
+             TO LINE-MSG
+           PERFORM SAY
+
+           MOVE "   .___       _________        .__  .__                          "
+             TO LINE-MSG
+           PERFORM SAY
+
+           MOVE "   |   | ____ \_   ___ \  ____ |  | |  |   ____   ____   ____    "
+             TO LINE-MSG
+           PERFORM SAY
+
+           MOVE "   |   |/    \/    \  \/ /  _ \|  | |  | _/ __ \ / __ \_/ __ \  "
+             TO LINE-MSG
+           PERFORM SAY
+
+           MOVE "   |   |   |  \    \___ (  <_> )  |_|  |_\  ___// /_/  >  ___/  "
+             TO LINE-MSG
+           PERFORM SAY
+
+           MOVE "   |___|___|  /\______  /\____/|____/____/\___  >___  / \___  >  "
+             TO LINE-MSG
+           PERFORM SAY
+
+           MOVE "            \/        \/                      \/_____/      \/  "
+             TO LINE-MSG
+           PERFORM SAY
+
+           MOVE "___________                ___________                        "
+             TO LINE-MSG
+           PERFORM SAY
+
+           MOVE "\__   ___/___ _____    ____\__   ___/___ ___  ________    ______"
+             TO LINE-MSG
+           PERFORM SAY
+
+           MOVE "  |   |_/ __ \\__  \  /    \|    |_/ __ \\  \/  /\__  \  /  ___/"
+             TO LINE-MSG
+           PERFORM SAY
+
+           MOVE "  |   |\  ___/ / __ \|  Y Y \    |\  ___/ >    <  / __ \_\___ \ "
+             TO LINE-MSG
+           PERFORM SAY
+
+           MOVE "  |___|  \___ > ____/__|_| _/____| \___> |__/\_ \ (_____/ /____ >"
+             TO LINE-MSG
+           PERFORM SAY
+           MOVE " "
+             TO LINE-MSG
+           PERFORM SAY
+
+           MOVE "-----------------------------------------------------------------"
+             TO LINE-MSG
+           PERFORM SAY
+            MOVE "-----------------------------------------------------------------"
+             TO LINE-MSG
+           PERFORM SAY
+
 
            PERFORM UNTIL LOGGED-IN
               PERFORM SHOW-MAIN
