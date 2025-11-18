@@ -209,6 +209,10 @@
        01  CURRENT-USER                    PIC X(20)  VALUE SPACES.
 
        01  I-DISPLAY                       PIC 99     VALUE 0.
+
+         77  PROGRAM-RUN                     PIC 9      VALUE 1.
+            88  RUNNING                                VALUE 1.
+            88  QUIT-PROGRAM                           VALUE 0.
        01  E-DISPLAY                       PIC 99     VALUE 0.
        77  PROFILE-FOUND                   PIC 9      VALUE 0.
        77  REPLACED-FLAG                   PIC 9      VALUE 0.
@@ -278,86 +282,33 @@
        MAIN.
            PERFORM BOOT
            PERFORM LOAD-ACCOUNTS
+           PERFORM STARTUP-MESSAGE
 
-           MOVE "Welcome to InCollege!" TO LINE-MSG
-           PERFORM SAY
-           MOVE "-----------------------------------------------------------------"
-             TO LINE-MSG
-           PERFORM SAY
-            MOVE "-----------------------------------------------------------------"
-             TO LINE-MSG
-           PERFORM SAY
+           *> Outer program loop so a user can log out and return to login
+           PERFORM UNTIL QUIT-PROGRAM
 
-           MOVE "   .___       _________        .__  .__                          "
-             TO LINE-MSG
-           PERFORM SAY
+              *> Login loop (blocks until a successful login)
+              PERFORM UNTIL LOGGED-IN
+                 PERFORM SHOW-MAIN
+                 PERFORM READ-MAIN
+                 EVALUATE TRUE
+                    WHEN MAIN-SEL = 1
+                       PERFORM LOGIN-FLOW
+                    WHEN MAIN-SEL = 2
+                       PERFORM REGISTER-FLOW
+                    WHEN OTHER
+                       MOVE "Invalid option. Choose 1 or 2." TO LINE-MSG
+                       PERFORM SAY
+                 END-EVALUATE
+              END-PERFORM
 
-           MOVE "   |   | ____ \_   ___ \  ____ |  | |  |   ____   ____   ____    "
-             TO LINE-MSG
-           PERFORM SAY
+              *> When login completes, show dashboard. If the user logs out
+              *> the dashboard will exit (LOG-OUT sets NOT-LOGGED), and control
+              *> returns here to re-run the login loop.
+              PERFORM DASHBOARD
 
-           MOVE "   |   |/    \/    \  \/ /  _ \|  | |  | _/ __ \ / __ \_/ __ \  "
-             TO LINE-MSG
-           PERFORM SAY
-
-           MOVE "   |   |   |  \    \___ (  <_> )  |_|  |_\  ___// /_/  >  ___/  "
-             TO LINE-MSG
-           PERFORM SAY
-
-           MOVE "   |___|___|  /\______  /\____/|____/____/\___  >___  / \___  >  "
-             TO LINE-MSG
-           PERFORM SAY
-
-           MOVE "            \/        \/                      \/_____/      \/  "
-             TO LINE-MSG
-           PERFORM SAY
-
-           MOVE "___________                ___________                        "
-             TO LINE-MSG
-           PERFORM SAY
-
-           MOVE "\__   ___/___ _____    ____\__   ___/___ ___  ________    ______"
-             TO LINE-MSG
-           PERFORM SAY
-
-           MOVE "  |   |_/ __ \\__  \  /    \|    |_/ __ \\  \/  /\__  \  /  ___/"
-             TO LINE-MSG
-           PERFORM SAY
-
-           MOVE "  |   |\  ___/ / __ \|  Y Y \    |\  ___/ >    <  / __ \_\___ \ "
-             TO LINE-MSG
-           PERFORM SAY
-
-           MOVE "  |___|  \___ > ____/__|_| _/____| \___> |__/\_ \ (_____/ /____ >"
-             TO LINE-MSG
-           PERFORM SAY
-           MOVE " "
-             TO LINE-MSG
-           PERFORM SAY
-
-           MOVE "-----------------------------------------------------------------"
-             TO LINE-MSG
-           PERFORM SAY
-            MOVE "-----------------------------------------------------------------"
-             TO LINE-MSG
-           PERFORM SAY
-
-
-           PERFORM UNTIL LOGGED-IN
-              PERFORM SHOW-MAIN
-              PERFORM READ-MAIN
-              EVALUATE TRUE
-                 WHEN MAIN-SEL = 1
-                    PERFORM LOGIN-FLOW
-                 WHEN MAIN-SEL = 2
-                    PERFORM REGISTER-FLOW
-                 WHEN OTHER
-                    MOVE "Invalid option. Choose 1 or 2." TO LINE-MSG
-                    PERFORM SAY
-              END-EVALUATE
            END-PERFORM
 
-           PERFORM DASHBOARD
            PERFORM SHUTDOWN
            STOP RUN.
 
@@ -427,6 +378,71 @@
               OPEN INPUT MessageFile
            END-IF
            .
+
+           STARTUP-MESSAGE.
+               MOVE "Welcome to InCollege!" TO LINE-MSG
+           PERFORM SAY
+           MOVE "-----------------------------------------------------------------"
+             TO LINE-MSG
+           PERFORM SAY
+            MOVE "-----------------------------------------------------------------"
+             TO LINE-MSG
+           PERFORM SAY
+
+           MOVE "   .___       _________        .__  .__                          "
+             TO LINE-MSG
+           PERFORM SAY
+
+           MOVE "   |   | ____ \_   ___ \  ____ |  | |  |   ____   ____   ____    "
+             TO LINE-MSG
+           PERFORM SAY
+
+           MOVE "   |   |/    \/    \  \/ /  _ \|  | |  | _/ __ \ / __ \_/ __ \  "
+             TO LINE-MSG
+           PERFORM SAY
+
+           MOVE "   |   |   |  \    \___ (  <_> )  |_|  |_\  ___// /_/  >  ___/  "
+             TO LINE-MSG
+           PERFORM SAY
+
+           MOVE "   |___|___|  /\______  /\____/|____/____/\___  >___  / \___  >  "
+             TO LINE-MSG
+           PERFORM SAY
+
+           MOVE "            \/        \/                      \/_____/      \/  "
+             TO LINE-MSG
+           PERFORM SAY
+
+           MOVE "___________                ___________                        "
+             TO LINE-MSG
+           PERFORM SAY
+
+           MOVE "\__   ___/___ _____    ____\__   ___/___ ___  ________    ______"
+             TO LINE-MSG
+           PERFORM SAY
+
+           MOVE "  |   |_/ __ \\__  \  /    \|    |_/ __ \\  \/  /\__  \  /  ___/"
+             TO LINE-MSG
+           PERFORM SAY
+
+           MOVE "  |   |\  ___/ / __ \|  Y Y \    |\  ___/ >    <  / __ \_\___ \ "
+             TO LINE-MSG
+           PERFORM SAY
+
+           MOVE "  |___|  \___ > ____/__|_| _/____| \___> |__/\_ \ (_____/ /____ >"
+             TO LINE-MSG
+           PERFORM SAY
+           MOVE " "
+             TO LINE-MSG
+           PERFORM SAY
+
+           MOVE "-----------------------------------------------------------------"
+             TO LINE-MSG
+           PERFORM SAY
+            MOVE "-----------------------------------------------------------------"
+             TO LINE-MSG
+           PERFORM SAY
+               .
 
        SHUTDOWN.
            CLOSE AcctFile
@@ -525,7 +541,7 @@
            .
 
        DASHBOARD.
-           PERFORM UNTIL 1 = 2
+           PERFORM UNTIL NOT-LOGGED
               MOVE "1. Create/Edit My Profile"            TO LINE-MSG PERFORM SAY
               MOVE "2. View My Profile"                   TO LINE-MSG PERFORM SAY
               MOVE "3. Find someone you know"             TO LINE-MSG PERFORM SAY
@@ -534,6 +550,7 @@
               MOVE "6. View My Network"                  TO LINE-MSG PERFORM SAY
               MOVE "7. Search for a job"            TO LINE-MSG PERFORM SAY
               MOVE "8. Messages" TO LINE-MSG PERFORM SAY
+              MOVE "9. Log-out" TO LINE-MSG PERFORM SAY
               MOVE "Enter your choice:"                   TO LINE-MSG PERFORM SAY
 
               PERFORM READ-NEXT
@@ -550,6 +567,7 @@
                     WHEN NAV-SEL = 6  PERFORM VIEW-NETWORK
                     WHEN NAV-SEL = 7  PERFORM JOB-MENU
                     WHEN NAV-SEL = 8 PERFORM MESSAGE-MENU
+                    WHEN NAV-SEL = 9 PERFORM LOG-OUT
                     WHEN OTHER   MOVE "Please pick 1, 2, 3, 4, 5, 6, 7 or 8." TO LINE-MSG PERFORM SAY
                  END-EVALUATE
               END-IF
@@ -588,6 +606,17 @@
                    PERFORM MESSAGE-MENU
            END-EVALUATE
            EXIT PARAGRAPH
+           .
+
+           LOG-OUT.
+               MOVE "Logging out..." TO LINE-MSG
+               PERFORM SAY
+               SET NOT-LOGGED TO TRUE
+               MOVE SPACES TO CURRENT-USER
+               *> clear any session-specific temporary fields
+               MOVE 0 TO JOB-COUNT JOB-SEL JOB-ID-CHOICE
+               MOVE SPACES TO JOB-TITLE-IN JOB-DESC-IN JOB-EMP-IN JOB-LOC-IN JOB-SAL-IN
+               EXIT PARAGRAPH
            .
 
        SEND-MESSAGE-FLOW.
