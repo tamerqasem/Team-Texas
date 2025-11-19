@@ -1924,12 +1924,22 @@
         EXIT PARAGRAPH
     END-IF
 
-    IF JOB-SEL > 0 AND JOB-SEL <= JOB-COUNT
+    PERFORM UNTIL JOB-SEL = 0 OR (JOB-SEL >= 1 AND JOB-SEL <= JOB-COUNT)
+        MOVE SPACES TO LINE-MSG
+        STRING "Invalid job number. Enter 0 to go back or a number between 1 and " JOB-COUNT "."
+           INTO LINE-MSG
+        END-STRING
+        PERFORM SAY
+        MOVE "Enter job number to view details, or 0 to go back:" TO LINE-MSG PERFORM SAY
+        PERFORM READ-NEXT
+        MOVE FUNCTION NUMVAL(FUNCTION TRIM(LAST-LINE)) TO JOB-SEL
+    END-PERFORM
+
+    IF JOB-SEL = 0
+        EXIT PARAGRAPH
+    ELSE
         MOVE JOB-ID-SLOT(JOB-SEL) TO JOB-ID-CHOICE
         PERFORM VIEW-JOB-DETAILS
-    ELSE
-        MOVE "Invalid job number." TO LINE-MSG
-        PERFORM SAY
     END-IF
 
     EXIT PARAGRAPH
@@ -1983,15 +1993,19 @@
                 PERFORM READ-NEXT
                 MOVE FUNCTION NUMVAL(FUNCTION TRIM(LAST-LINE)) TO SUB-SEL
 
-                EVALUATE SUB-SEL
-                    WHEN 1
-                        PERFORM APPLY-FOR-JOB
-                    WHEN 2
-                        PERFORM BROWSE-JOB-FLOW
-                    WHEN OTHER
-                        MOVE "Invalid option." TO LINE-MSG
-                        PERFORM SAY
-                END-EVALUATE
+                PERFORM UNTIL SUB-SEL = 1 OR SUB-SEL = 2
+                    EVALUATE SUB-SEL
+                        WHEN 1
+                            PERFORM APPLY-FOR-JOB
+                        WHEN 2
+                            PERFORM BROWSE-JOB-FLOW
+                        WHEN OTHER
+                            MOVE "Invalid option. Enter 1 to apply or 2 to go back:" TO LINE-MSG
+                            PERFORM SAY
+                            PERFORM READ-NEXT
+                            MOVE FUNCTION NUMVAL(FUNCTION TRIM(LAST-LINE)) TO SUB-SEL
+                    END-EVALUATE
+                END-PERFORM
 
                 EXIT PERFORM
             END-IF
